@@ -15,6 +15,7 @@ let OverlayStyles = {
     width: '100vw',
     height: '100vh',
     backgroundColor: 'rgba(0, 0, 0, 0.63)',
+    backdropFilter: 'blur(4px)',
     zIndex: '',
 };
 
@@ -46,10 +47,10 @@ function SetOverlayVisibility(visible: boolean){
         OverlayState.overflow = (document.body.clientHeight < document.body.scrollHeight);
         
         if (visible){
-            OverlayState.element.style.removeProperty('display');
+            OverlayState.element.style.width = OverlayStyles.width;
         }
         else{
-            OverlayState.element.style.display = 'none';
+            OverlayState.element.style.width = '0';
         }
         
         window.dispatchEvent(new CustomEvent('overlay.visibility', {

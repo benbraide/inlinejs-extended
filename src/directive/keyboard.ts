@@ -53,6 +53,10 @@ function BindKeyboardType(component: IComponent | null, contextElement: HTMLElem
 }
 
 export const KeyboardDirectiveHandler = CreateDirectiveHandlerCallback('keyboard', ({ component, componentId, contextElement, expression, argKey, argOptions }) => {
+    if (!(expression = expression.trim())){
+        return;
+    }
+    
     let options = ResolveOptions({
         options: {
             delay: -1,
@@ -62,25 +66,20 @@ export const KeyboardDirectiveHandler = CreateDirectiveHandlerCallback('keyboard
         defaultNumber: -1,
     });
     
-    let assign = (value: any) => {
-        EvaluateLater({ componentId, contextElement,
-            expression: `(${expression}) = (${JSON.stringify(value)})`,
-        })();
-    };
-
+    let evaluate = EvaluateLater({ componentId, contextElement, expression });
     if (argKey === 'inside'){
-        BindKeyboardInside(contextElement, (value, unbind) => {
-            assign(value);
+        BindKeyboardInside(contextElement, (inside, unbind) => {
+            evaluate(undefined, [inside], { inside });
             if (options.once){
                 unbind();
             }
         });
     }
     else if (argKey === 'down' || argKey === 'up'){
-        BindKeyboardKey(contextElement, argKey, assign);
+        BindKeyboardKey(contextElement, argKey, key => evaluate(undefined, [key], { key }));
     }
     else if (argKey === 'type'){
-        BindKeyboardType((component || FindComponentById(componentId)), contextElement, options.delay, assign);
+        BindKeyboardType((component || FindComponentById(componentId)), contextElement, options.delay, typing => evaluate(undefined, [typing], { typing }));
     }
 });
 

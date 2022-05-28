@@ -63,6 +63,10 @@ function BindMouseMove(contextElement: HTMLElement, callback: (count: IMouseCoor
 }
 
 export const MouseDirectiveHandler = CreateDirectiveHandlerCallback('mouse', ({ componentId, component, contextElement, expression, argKey, argOptions }) => {
+    if (!(expression = expression.trim())){
+        return;
+    }
+    
     let options = ResolveOptions({
         options: {
             delay: -1,
@@ -73,27 +77,21 @@ export const MouseDirectiveHandler = CreateDirectiveHandlerCallback('mouse', ({ 
         defaultNumber: -1,
     });
 
+    let evaluate = EvaluateLater({ componentId, contextElement, expression });
     if (argKey === 'repeat'){
-        let evaluate = EvaluateLater({ componentId, contextElement, expression });
         return BindMouseRepeat((component || FindComponentById(componentId)), contextElement, options.delay, streak => evaluate(undefined, [streak], { streak }));
     }
     
-    let assign = (value: any) => {
-        EvaluateLater({ componentId, contextElement,
-            expression: `(${expression}) = (${JSON.stringify(value)})`,
-        })();
-    };
-
     if (argKey === 'inside'){
-        BindMouseInside(contextElement, (value, unbind) => {
-            assign(value);
+        BindMouseInside(contextElement, (inside, unbind) => {
+            evaluate(undefined, [inside], { inside });
             if (options.once){
                 unbind();
             }
         });
     }
     else if (argKey === 'move'){
-        BindMouseMove(contextElement, assign);
+        BindMouseMove(contextElement, position => evaluate(undefined, [position], { position }));
     }
 });
 

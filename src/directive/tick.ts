@@ -18,6 +18,7 @@ export const TickDirectiveHandler = CreateDirectiveHandlerCallback('tick', ({ co
             duration: 0,
             steps: -1,
             stopped: false,
+            vsync: false,
         },
         list: argOptions,
         defaultNumber: -1,
@@ -57,7 +58,7 @@ export const TickDirectiveHandler = CreateDirectiveHandlerCallback('tick', ({ co
     };
 
     let run = () => {
-        CreateLoop(0, getDelay()).While(step.bind(null, ++state.checkpoint));
+        CreateLoop(0, getDelay(), 0, 0, options.vsync).While(step.bind(null, ++state.checkpoint));
         evaluate();
     };
 

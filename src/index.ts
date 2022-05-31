@@ -1,3 +1,5 @@
+export * from './names'
+
 export * from './concepts/fetch'
 export * from './concepts/resource'
 

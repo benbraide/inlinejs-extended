@@ -18,7 +18,7 @@ import {
     ResolveOptions
 } from "@benbraide/inlinejs";
 
-const FormDirectiveName = 'form';
+import { FormDirectiveName, StateDirectiveName } from "../names";
 
 interface IFormMiddlewareDataInfo{
     data: any;
@@ -252,7 +252,23 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
             appendFields(url, Object.entries(fields));
         }
 
-        GetGlobal().GetFetchConcept().Get(url, info).then(res => res.json()).then((response) => {
+        GetGlobal().GetFetchConcept().Get(url, info).then((res) => {
+            try{
+                return res.json();
+            }
+            catch{}
+
+            return res.text();
+        }).then((response) => {
+            if (typeof response === 'string'){
+                try{
+                    response = JSON.parse(response);
+                }
+                catch{
+                    response = null;
+                }
+            }
+            
             updateState('active', false);
             updateState('errors', {});
 
@@ -272,9 +288,9 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
 
                         if (form && !options.novalidate){//Set validation error
                             let item = form.elements.namedItem(key);
-                            if (item && (item instanceof HTMLInputElement || item instanceof HTMLTextAreaElement || item instanceof HTMLSelectElement)){
-                                item.setCustomValidity(Array.isArray(value) ? value.map(v => ToString(v)).join('\n') : ToString(value));
-                                item.dispatchEvent(new CustomEvent(`${FormDirectiveName}.validity`));
+                            let local = (item && FindComponentById(componentId)?.FindElementLocalValue(<HTMLElement>item, `\$${StateDirectiveName}`, true));
+                            if (local && !GetGlobal().IsNothing(local)){
+                                local['setMessage'](Array.isArray(value) ? value.map(v => ToString(v)).join('\n') : ToString(value));
                             }
                         }
                     });

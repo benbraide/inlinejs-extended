@@ -9,11 +9,20 @@ import {
     CreateInplaceProxy
 } from "@benbraide/inlinejs";
 
-const StateDirectiveName = 'state';
+import { StateDirectiveName } from "../names";
 
-type StateErrorCallbackType = () => Array<string> | string;
+interface IErrorMessageInfo{
+    name: string;
+    message: Array<string>;
+}
+
+type StateErrorCallbackType = () => IErrorMessageInfo | Array<IErrorMessageInfo>;
 
 function BindState(componentId: string, component: IComponent | null, contextElement: HTMLElement){
+    if (contextElement instanceof HTMLTemplateElement){
+        return;
+    }
+    
     let elementScope = component?.FindElementScope(contextElement), localKey = `\$${StateDirectiveName}`, parentKey = `#${StateDirectiveName}`;
     if (elementScope?.HasLocal(localKey)){
         return;
@@ -62,17 +71,25 @@ function BindState(componentId: string, component: IComponent | null, contextEle
         return (GetGlobal().IsNothing(local) ? null : local);
     }
 
-    let getArray = (value: string | Array<string>) => ((typeof value === 'string') ? [value] : value), getRoot = () => {
+    let getRoot = () => {
         return (parent ? parent.getRoot() : getLocal(contextElement));
     };
     
     let getMessage = () => {
-        if (message !== null){
-            FindComponentById(componentId)?.GetBackend().changes.AddGetAccess(`${id}.message`);
-            return message;
+        if (!isFormElement || message === null){
+            return errorCallbacks
+                .map(callback => callback())
+                .map(info => (Array.isArray(info) ? info : [info]))
+                .reduce((prev, info) => [...prev, ...info], [])
+                .filter(info => (info.message.length != 0));
         }
+        
+        FindComponentById(componentId)?.GetBackend().changes.AddGetAccess(`${id}.message`);
 
-        return errorCallbacks.reduce((prev, callback) => [...prev, ...getArray(callback())], new Array<string>()).filter(msg => !!msg);
+        return <IErrorMessageInfo>{
+            name: contextElement.getAttribute('name') || 'Unnamed',
+            message: (message ? message.split('\n') : []),
+        };
     };
 
     let isInput = (contextElement instanceof HTMLInputElement || contextElement instanceof HTMLTextAreaElement), local = CreateInplaceProxy(BuildGetterProxyOptions({
@@ -83,6 +100,11 @@ function BindState(componentId: string, component: IComponent | null, contextEle
             }
 
             if (prop === 'message'){
+                let msg = getMessage();
+                return (isFormElement ? (Array.isArray(msg) ? msg : [msg]).map(item => item.message).reduce((prev, item) => [...prev, ...item], []) : msg);
+            }
+
+            if (prop === 'realMessage'){
                 return getMessage();
             }
 
@@ -97,15 +119,30 @@ function BindState(componentId: string, component: IComponent | null, contextEle
             if (prop === 'reset'){
                 return reset;
             }
+
+            if (isFormElement && prop === 'setMessage'){
+                return (msg: string) => {
+                    (contextElement as HTMLInputElement).setCustomValidity(message = msg);
+                    if (!(contextElement as HTMLInputElement).validity.valid){
+                        offsetState('invalid', 1, 1);
+                    }
+                };
+            }
         },
         lookup: [...Object.keys(state), 'message', 'parent', 'root', 'reset'],
     }));
 
-    if (isInput || contextElement instanceof HTMLSelectElement){
+    let isFormElement = (isInput || contextElement instanceof HTMLSelectElement);
+    if (isFormElement){
         let initialValue = (contextElement as HTMLInputElement).value, onEvent = () => {
             offsetState('dirty', 1, 1);
             offsetState('changed', ((contextElement as HTMLInputElement).value === initialValue) ? -1 : 1, 1);
             offsetState('invalid', ((contextElement as HTMLInputElement).validity.valid ? -1 : 1), 1);
+
+            if ((contextElement as HTMLInputElement).validity.customError){
+                (contextElement as HTMLInputElement).setCustomValidity('');
+            }
+            
             updateMessage((contextElement as HTMLInputElement).validationMessage);
         };
 
@@ -127,19 +164,39 @@ function BindState(componentId: string, component: IComponent | null, contextEle
             removeResetCallback: (callback: StateErrorCallbackType) => (resetCallbacks = resetCallbacks.filter(c => (c !== callback))),
         });
         
-        elementScope?.AddTreeChangeCallback(({ added }) => added.forEach(child => BindState(componentId, null, <HTMLElement>child)));
-        [...contextElement.children].forEach((child) => {
+        elementScope?.AddTreeChangeCallback(({ added }) => added.filter(child => !(child instanceof HTMLTemplateElement)).forEach((child) => {
+            FindComponentById(componentId)?.CreateElementScope(<HTMLElement>child);
+            BindState(componentId, FindComponentById(componentId), <HTMLElement>child);
+        }));
+
+        [...contextElement.children].filter(child => !(child instanceof HTMLTemplateElement)).forEach((child) => {
             component?.CreateElementScope(<HTMLElement>child);
             BindState(componentId, component, <HTMLElement>child);
         });
     }
 
-    let reset = () => {
+    let checkpoint = 0, reset = () => {
         Object.keys(state).filter(key => (state[key] != 0)).forEach((key) => {
             state[key] = 0;
             alertUpdate(key, -1);
         });
-        resetCallbacks.forEach(callback => callback());
+
+        if (isFormElement){
+            let myCheckpoint = ++checkpoint;
+            setTimeout(() => {//Defer update
+                if (myCheckpoint != checkpoint){
+                    return;
+                }
+
+                updateMessage((contextElement as HTMLInputElement).validationMessage);
+                if (!(contextElement as HTMLInputElement).validity.valid){
+                    offsetState('invalid', 1, 1);
+                }
+            }, 0);
+        }
+        else{
+            resetCallbacks.forEach(callback => callback());
+        }
     };
 
     if (!isInput && !(contextElement instanceof HTMLSelectElement) && errorCallbacks.length == 0){
@@ -157,7 +214,7 @@ function BindState(componentId: string, component: IComponent | null, contextEle
         });
     }
     else{//Listen for form reset, if possible
-        let form = component?.FindElement(contextElement, el => (el instanceof HTMLFormElement));
+        let form = ((contextElement instanceof HTMLFormElement) ? contextElement : component?.FindElement(contextElement, el => (el instanceof HTMLFormElement)));
         if (form){
             form.addEventListener('reset', reset);
             elementScope?.AddUninitCallback(() => form!.removeEventListener('reset', reset));

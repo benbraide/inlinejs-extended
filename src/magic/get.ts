@@ -42,8 +42,20 @@ export const GetMagicHandler = CreateMagicHandlerCallback('get', ({ componentId,
             GetGlobal().GetFetchConcept().Get(path, {
                 method: 'GET',
                 credentials: 'same-origin',
-            }).then(response => (json ? response.json() : response.text())).then((response) => {
-                if (checkpoint == GetFetchCheckpoint(contextElement)){
+            }).then(response => response.text()).then((response) => {
+                if (checkpoint != GetFetchCheckpoint(contextElement)){
+                    return;
+                }
+                
+                if (json){
+                    try{
+                        resolve(JSON.parse(response));
+                    }
+                    catch{
+                        resolve({});
+                    }
+                }
+                else{
                     resolve(response);
                 }
             }).catch(reject);

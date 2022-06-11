@@ -12,8 +12,9 @@ import { MouseDirectiveHandlerCompact } from './directive/mouse';
 import { KeyboardDirectiveHandlerCompact } from './directive/keyboard';
 
 import { FormatMagicHandlerCompact } from './magic/format';
-import { GetMagicHandlerCompact } from './magic/get';
 import { FetchMagicHandlerCompact } from './magic/fetch';
+import { GetMagicHandlerCompact } from './magic/get';
+import { WaitMagicHandlerCompact } from './magic/wait';
 import { OverlayMagicHandlerCompact } from './magic/overlay';
 
 WaitForGlobal().then(() => {
@@ -29,7 +30,8 @@ WaitForGlobal().then(() => {
     KeyboardDirectiveHandlerCompact();
 
     FormatMagicHandlerCompact();
-    GetMagicHandlerCompact();
     FetchMagicHandlerCompact();
+    GetMagicHandlerCompact();
+    WaitMagicHandlerCompact();
     OverlayMagicHandlerCompact();
 });

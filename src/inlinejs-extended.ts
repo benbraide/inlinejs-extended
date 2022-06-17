@@ -14,6 +14,7 @@ import { KeyboardDirectiveHandlerCompact } from './directive/keyboard';
 import { FormatMagicHandlerCompact } from './magic/format';
 import { FetchMagicHandlerCompact } from './magic/fetch';
 import { GetMagicHandlerCompact } from './magic/get';
+import { ResourceMagicHandlerCompact } from './magic/resource';
 import { WaitMagicHandlerCompact } from './magic/wait';
 import { OverlayMagicHandlerCompact } from './magic/overlay';
 
@@ -32,6 +33,7 @@ WaitForGlobal().then(() => {
     FormatMagicHandlerCompact();
     FetchMagicHandlerCompact();
     GetMagicHandlerCompact();
+    ResourceMagicHandlerCompact();
     WaitMagicHandlerCompact();
     OverlayMagicHandlerCompact();
 });

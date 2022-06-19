@@ -15,7 +15,8 @@ import {
     IsObject,
     ToString,
     BindEvent,
-    ResolveOptions
+    ResolveOptions,
+    DeepCopy
 } from "@benbraide/inlinejs";
 
 import { FormDirectiveName, StateDirectiveName } from "../names";
@@ -55,19 +56,22 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
 
     let localKey = `\$${FormDirectiveName}`;
     if (argKey === 'field'){
-        return EvaluateLater({ componentId, contextElement, expression })((value) => {
-            if (IsObject(value)){
+        let evaluate = EvaluateLater({ componentId, contextElement, expression }), savedData: any = null;
+        return UseEffect({ componentId, contextElement,
+            callback: () => evaluate((data) => {
                 let proxy = FindComponentById(componentId)?.FindElementLocalValue(contextElement, localKey, true);
                 if (proxy && !GetGlobal().IsNothing(proxy)){
-                    Object.entries(value).forEach(([key, value]) => proxy.addField(key, value));
+                    IsObject(savedData) && Object.keys(savedData).forEach(key => proxy.removeField(key));
+                    IsObject(data) && Object.entries(data).forEach(([key, value]) => proxy.addField(key, value));
+                    savedData = DeepCopy(data);
                 }
-            }
+            }),
         });
     }
     
     if (argKey in FormMiddlewares){//Bind data
         let evaluate = EvaluateLater({ componentId, contextElement, expression });
-        UseEffect({ componentId, contextElement,
+        return UseEffect({ componentId, contextElement,
             callback: () => evaluate((data) => {
                 let component = FindComponentById(componentId), proxy = component?.FindElementLocalValue(contextElement, localKey, true);
                 if (proxy){//Bind data
@@ -81,8 +85,6 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
                 }
             }),
         });
-        
-        return;
     }
 
     let id = resolvedComponent.GenerateUniqueId('form_proxy_'), middlewares = new Array<IFormMiddleware>(), options = ResolveOptions({

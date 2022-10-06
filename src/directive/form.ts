@@ -21,6 +21,11 @@ import {
 
 import { FormDirectiveName, StateDirectiveName } from "../names";
 
+interface IFormFieldExpression{
+    value: string;
+    source: HTMLElement;
+}
+
 interface IFormMiddlewareDataInfo{
     data: any;
     source?: HTMLElement;
@@ -54,19 +59,15 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
         return JournalError('Failed to resolve component.', 'InlineJS.FormDirectiveHandler', contextElement);
     }
 
-    let localKey = `\$${FormDirectiveName}`;
+    let localKey = `\$${FormDirectiveName}`, secretKey = `#${FormDirectiveName}`;
     if (argKey === 'field'){
-        let evaluate = EvaluateLater({ componentId, contextElement, expression }), savedData: any = null;
-        return UseEffect({ componentId, contextElement,
-            callback: () => evaluate((data) => {
-                let proxy = FindComponentById(componentId)?.FindElementLocalValue(contextElement, localKey, true);
-                if (proxy && !GetGlobal().IsNothing(proxy)){
-                    IsObject(savedData) && Object.keys(savedData).forEach(key => proxy.removeField(key));
-                    IsObject(data) && Object.entries(data).forEach(([key, value]) => proxy.addField(key, value));
-                    savedData = DeepCopy(data);
-                }
-            }),
+        let proxy = resolvedComponent.FindElementLocalValue(contextElement, secretKey, true);
+        resolvedComponent.FindElementScope(contextElement)?.AddUninitCallback(() => {
+            let proxy = FindComponentById(componentId)?.FindElementLocalValue(contextElement, secretKey, true);
+            (proxy && !GetGlobal().IsNothing(proxy)) && proxy.removeFieldExpression(contextElement);
         });
+        
+        return ((proxy && !GetGlobal().IsNothing(proxy)) && proxy.setFieldExpression(expression, contextElement));
     }
     
     if (argKey in FormMiddlewares){//Bind data
@@ -222,16 +223,24 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
         }
     };
 
+    let fieldExpressions = new Array<IFormFieldExpression>(), evaluateFieldExpressions = () => {
+        fieldExpressions.filter(info => (info.source === contextElement || contextElement.contains(info.source))).forEach((info) => {
+            EvaluateLater({ componentId, contextElement: info.source, expression: info.value })(value => (IsObject(value) && (fields = { ...fields, ...value })));
+        });
+    };
+    
     let handleEvent = (e?: Event) => {
         if (state.active || (eventHandler && !eventHandler(e))){
             return;
         }
         
-        let event = new CustomEvent(`${FormDirectiveName}.submitting`);
+        let event = new CustomEvent(`${FormDirectiveName}.submitting`, { cancelable: true });
         contextElement.dispatchEvent(event);
         if (event.defaultPrevented){
             return;
         }
+
+        evaluateFieldExpressions();
         
         let info: RequestInit = {
             method: computeMethod(),
@@ -400,6 +409,19 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
             }
         },
         lookup: [...Object.keys(state), 'element', 'submit', 'reset', 'bindMiddlewareData', 'unbindMiddlewareData', 'addField', 'removeField'],
+    })));
+
+    resolvedComponent.FindElementScope(contextElement)?.SetLocal(secretKey, CreateInplaceProxy(BuildGetterProxyOptions({
+        getter: (prop) => {
+            if (prop === 'setFieldExpression'){
+                return (expression: string, source: HTMLElement) => fieldExpressions.push({ value: expression, source });
+            }
+
+            if (prop === 'removeFieldExpression'){
+                return (source: HTMLElement) => (fieldExpressions = fieldExpressions.filter(info => (info.source !== source)));
+            }
+        },
+        lookup: ['setFieldExpression', 'removeFieldExpression'],
     })));
 
     let onEvent = (e: Event) => {

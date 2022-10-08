@@ -1,6 +1,6 @@
 {
   "name": "@benbraide/inlinejs-extended",
-  "version": "1.0.17",
+  "version": "1.0.18",
   "description": "Run javascript code by embedding them in your HTML using the element as context.",
   "files": [
     "dist/",

@@ -2,16 +2,16 @@ import { GetGlobal, AddMagicHandler, CreateMagicHandlerCallback, CreateReadonlyP
 
 import { FetchConcept } from "../concepts/fetch";
 
-const ExtendedFetch = new FetchConcept();
-
 function CreateFetchProxy(){
+    let getConcept = () => GetGlobal().GetConcept<FetchConcept>('extended_fetch');
+    
     let methods = {
-        install: () => GetGlobal().SetFetchConcept(ExtendedFetch),
-        uninstall: () => GetGlobal().SetFetchConcept(null),
-        get: (input: RequestInfo, init?: RequestInit) => ExtendedFetch.Get(input, init),
-        addPathHandler: (path: string | RegExp, handler: FetchPathHandlerType) => ExtendedFetch.AddPathHandler(path, handler),
-        removePathHandler: (handler: FetchPathHandlerType) => ExtendedFetch.RemovePathHandler(handler),
-        mockResponse: (params: IFetchMockResponseParams) => ExtendedFetch.MockResponse(params),
+        install: () => GetGlobal().SetFetchConcept(getConcept()),
+        uninstall: () => ((GetGlobal().GetFetchConcept() === getConcept()) && GetGlobal().SetFetchConcept(null)),
+        get: (input: RequestInfo, init?: RequestInit) => getConcept()?.Get(input, init),
+        addPathHandler: (path: string | RegExp, handler: FetchPathHandlerType) => getConcept()?.AddPathHandler(path, handler),
+        removePathHandler: (handler: FetchPathHandlerType) => getConcept()?.RemovePathHandler(handler),
+        mockResponse: (params: IFetchMockResponseParams) => getConcept()?.MockResponse(params),
     };
 
     return CreateReadonlyProxy(methods);

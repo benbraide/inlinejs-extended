@@ -1,5 +1,7 @@
 import { WaitForGlobal, GetGlobal } from '@benbraide/inlinejs';
 
+import { FetchConceptName, ResourceConceptName, ServerConceptName } from './names';
+
 import { FetchConcept } from './concepts/fetch';
 import { ResourceConcept } from './concepts/resource';
 import { ServerConcept } from './concepts/server';
@@ -22,9 +24,9 @@ import { WaitMagicHandlerCompact } from './magic/wait';
 import { OverlayMagicHandlerCompact } from './magic/overlay';
 
 WaitForGlobal().then(() => {
-    GetGlobal().SetConcept('extended_fetch', new FetchConcept());
-    GetGlobal().SetConcept('resource', new ResourceConcept());
-    GetGlobal().SetConcept('server', new ServerConcept());
+    GetGlobal().SetConcept(FetchConceptName, new FetchConcept());
+    GetGlobal().SetConcept(ResourceConceptName, new ResourceConcept());
+    GetGlobal().SetConcept(ServerConceptName, new ServerConcept());
     
     AttrDirectiveHandlerCompact();
     IntersectionDirectiveHandlerCompact();

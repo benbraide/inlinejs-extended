@@ -15,11 +15,11 @@ import {
     IsObject,
     ToString,
     BindEvent,
-    ResolveOptions,
-    DeepCopy
+    ResolveOptions
 } from "@benbraide/inlinejs";
 
-import { FormDirectiveName, StateDirectiveName } from "../names";
+import { FormDirectiveName, ServerConceptName, StateDirectiveName } from "../names";
+import { IServerConcept, IServerProgressInfo } from "../types";
 
 interface IFormFieldExpression{
     value: string;
@@ -47,7 +47,7 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
         key: FormDirectiveName,
         event: argKey,
         defaultEvent: 'success',
-        eventWhitelist: ['error', 'submitting', 'submit', 'save', 'load', 'reset'],
+        eventWhitelist: ['error', 'submitting', 'submit', 'save', 'load', 'reset', 'progress'],
         options: argOptions,
         optionBlacklist: ['window', 'document', 'outside'],
     })){
@@ -99,6 +99,9 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
             nexttick: false,
             novalidate: false,
             silent: false,
+            upload: false,
+            download: false,
+            duplex: false,
         },
         list: argOptions,
         unknownCallback: ({ option }) => {
@@ -262,11 +265,11 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
         else{//Get | Head
             appendFields(url, Object.entries(fields));
         }
-
-        GetGlobal().GetFetchConcept().Get(url, info).then(res => res.text()).then((res) => {
+        
+        let handleData = (data: string) => {
             let response: any;
             try{
-                response = JSON.parse(res);
+                response = JSON.parse(data);
             }
             catch{
                 response = null;
@@ -347,10 +350,43 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
                     after();
                 }
             }, `InlineJS.${FormDirectiveName}.HandleEvent`, contextElement);
-        }).catch((err) => {
-            updateState('active', false);
-            JournalError(err, `InlineJS.${FormDirectiveName}.HandleEvent`, contextElement);
-        });
+        };
+
+        if (options.upload || options.download || options.duplex){
+            let doWhile = (progress: number | string | IServerProgressInfo) => {
+                if (typeof progress === 'number'){
+                    contextElement.dispatchEvent(new CustomEvent(`${FormDirectiveName}.progress`, {
+                        detail: { progress },
+                    }));
+                }
+                else if (typeof progress !== 'string'){
+                    contextElement.dispatchEvent(new CustomEvent(`${FormDirectiveName}.progress`, {
+                        detail: { progress: { ...progress } },
+                    }));
+                }
+            };
+
+            let doFinal = (res: number | string | IServerProgressInfo) => ((typeof res === 'string') && handleData(res));
+            
+            if (options.upload){
+                doWhile(0);
+                GetGlobal().GetConcept<IServerConcept>(ServerConceptName)?.Upload(url, <FormData>info.body, info.method).While(doWhile).Final(doFinal);
+            }
+            else if (options.download){
+                doWhile(0);
+                GetGlobal().GetConcept<IServerConcept>(ServerConceptName)?.Download(url, <FormData>info.body, info.method).While(doWhile).Final(doFinal);
+            }
+            else{
+                doWhile(<IServerProgressInfo>{ isUpload: true, value: 0 });
+                GetGlobal().GetConcept<IServerConcept>(ServerConceptName)?.Duplex(url, <FormData>info.body, info.method).While(doWhile).Final(doFinal);
+            }
+        }
+        else{
+            GetGlobal().GetFetchConcept().Get(url, info).then(res => res.text()).then(handleData).catch((err) => {
+                updateState('active', false);
+                JournalError(err, `InlineJS.${FormDirectiveName}.HandleEvent`, contextElement);
+            });
+        }
     };
 
     resolvedComponent.FindElementScope(contextElement)?.SetLocal(localKey, CreateInplaceProxy(BuildGetterProxyOptions({

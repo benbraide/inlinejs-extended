@@ -1,9 +1,10 @@
 import { GetGlobal, AddMagicHandler, CreateMagicHandlerCallback, CreateReadonlyProxy, FetchPathHandlerType, IFetchMockResponseParams } from "@benbraide/inlinejs";
 
 import { FetchConcept } from "../concepts/fetch";
+import { FetchConceptName } from "../names";
 
 function CreateFetchProxy(){
-    let getConcept = () => GetGlobal().GetConcept<FetchConcept>('extended_fetch');
+    let getConcept = () => GetGlobal().GetConcept<FetchConcept>(FetchConceptName);
     
     let methods = {
         install: () => GetGlobal().SetFetchConcept(getConcept()),

@@ -1,19 +1,8 @@
-import { Loop } from "@benbraide/inlinejs";
+import { IsObject, Loop } from "@benbraide/inlinejs";
+import { IServerConcept, IServerProgressHandlers, IServerProgressInfo, ServerRequestInitType } from "../types";
 
-export type IServerProgressHandler = (e: ProgressEvent<XMLHttpRequestEventTarget>) => void;
-
-export interface IServerProgressHandlers{
-    download?: IServerProgressHandler;
-    upload?: IServerProgressHandler;
-}
-
-export interface IServerProgressInfo{
-    isUpload: boolean;
-    value: number;
-}
-
-export class ServerConcept{
-    public Upload(url: string, init?: XMLHttpRequestBodyInit, method = 'POST'): Loop<number | string>{
+export class ServerConcept implements IServerConcept{
+    public Upload(url: string, init?: ServerRequestInitType, method = 'POST'): Loop<number | string>{
         return new Loop((doWhile, doFinal, doAbort) => {
             this.Get_(url, method, response => doFinal(response), doAbort, <XMLHttpRequestBodyInit>init, {
                 upload: progress => doWhile(progress.lengthComputable ? (progress.loaded / progress.total) : 0),
@@ -21,7 +10,7 @@ export class ServerConcept{
         });
     }
 
-    public Download(url: string, init?: XMLHttpRequestBodyInit, method = 'POST'): Loop<number | string>{
+    public Download(url: string, init?: ServerRequestInitType, method = 'POST'): Loop<number | string>{
         return new Loop((doWhile, doFinal, doAbort) => {
             this.Get_(url, method, response => doFinal(response), doAbort, <XMLHttpRequestBodyInit>init, {
                 download: progress => doWhile(progress.lengthComputable ? (progress.loaded / progress.total) : 0),
@@ -29,7 +18,7 @@ export class ServerConcept{
         });
     }
 
-    public Duplex(url: string, init?: XMLHttpRequestBodyInit, method = 'POST'): Loop<IServerProgressInfo | string>{
+    public Duplex(url: string, init?: ServerRequestInitType, method = 'POST'): Loop<IServerProgressInfo | string>{
         return new Loop((doWhile, doFinal, doAbort) => {
             this.Get_(url, method, response => doFinal(response), doAbort, <XMLHttpRequestBodyInit>init, {
                 download: progress => doWhile({
@@ -44,7 +33,7 @@ export class ServerConcept{
         });
     }
 
-    protected Get_(url: string, method: string, handler: (response: string) => void, errorHandler: (text: string, code: number) => void, init?: XMLHttpRequestBodyInit, progressHandlers?: IServerProgressHandlers){
+    protected Get_(url: string, method: string, handler: (response: string) => void, errorHandler: (text: string, code: number) => void, init?: ServerRequestInitType, progressHandlers?: IServerProgressHandlers){
         let request = new XMLHttpRequest(), clean = () => {
             request.removeEventListener('load', onLoad);
             request.removeEventListener('error', onError);
@@ -75,6 +64,17 @@ export class ServerConcept{
         (request.upload && progressHandlers?.upload && request.upload.addEventListener('load', progressHandlers.upload));
         
         request.open(method, url, true);
-        request.send(init);
+        request.send(init && ServerConcept.TransformRequestInit(init));
+    }
+
+    public static TransformRequestInit(init: ServerRequestInitType): XMLHttpRequestBodyInit{
+        if (!IsObject(init)){
+            return <XMLHttpRequestBodyInit>init;
+        }
+
+        let formData = new FormData();
+        Object.entries(init).forEach(([key, value]) => formData.append(key, value));
+
+        return formData;
     }
 }

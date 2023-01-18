@@ -22,3 +22,5 @@ export * from './magic/resource'
 export * from './magic/server'
 export * from './magic/wait'
 export * from './magic/overlay'
+
+export * from './entry'

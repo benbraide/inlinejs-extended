@@ -42,9 +42,15 @@ export const FormatMagicHandler = CreateMagicHandlerCallback('format', ({ compon
         prefix: (data: any, value: any) => affix(data, value, (data, value) => (value + data)),
         suffix: (data: any, value: any) => affix(data, value, (data, value) => (data + value)),
         affix: (data: any, prefix: any, suffix: any) => affix(data, prefix, (data, value) => affix((value + data), suffix, (data, value) => (data + value))),
-        round: (data: any, dp?: number) => StreamData(data, (data) => {
+        round: (data: any, dp?: number, truncateZeroes = false) => StreamData(data, (data) => {
             let parsed = parseFloat(ToString(data));
-            return (((parsed || parsed === 0) ? (Math.round(parsed * 100) / 100).toFixed(dp || 0).toString() : parsed));
+            if (!parsed && parsed !== 0){
+                return parsed;
+            }
+            
+            let fixed = (Math.round(parsed * 100) / 100).toFixed(dp || 0);
+
+            return (truncateZeroes ? fixed.replace(/(\.\d*?[1-9])0+$/g, "$1") : fixed);
         }),
         map: (data: any, keys: string | number | Array<string | number>) => StreamData(data, (data) => {
             if (Array.isArray(data)){

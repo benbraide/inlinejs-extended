@@ -50,7 +50,7 @@ export const FormatMagicHandler = CreateMagicHandlerCallback('format', ({ compon
             
             let fixed = (Math.round(parsed * 100) / 100).toFixed(dp || 0);
 
-            return (truncateZeroes ? fixed.replace(/(\.\d*?[1-9])0+$/g, "$1") : fixed);
+            return (truncateZeroes ? fixed.replace(/(\.\d*?[1-9])0+$/g, "$1").replace(/\.0+$/g, '') : fixed);
         }),
         map: (data: any, keys: string | number | Array<string | number>) => StreamData(data, (data) => {
             if (Array.isArray(data)){

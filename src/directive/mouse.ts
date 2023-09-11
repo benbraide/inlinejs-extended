@@ -77,11 +77,7 @@ export const MouseDirectiveHandler = CreateDirectiveHandlerCallback('mouse', ({ 
         defaultNumber: -1,
     });
 
-    let evaluate = EvaluateLater({ componentId, contextElement, expression });
-    if (argKey === 'repeat'){
-        return BindMouseRepeat((component || FindComponentById(componentId)), contextElement, options.delay, streak => evaluate(undefined, [streak], { streak }));
-    }
-    
+    const evaluate = EvaluateLater({ componentId, contextElement, expression });
     if (argKey === 'inside'){
         BindMouseInside(contextElement, (inside, unbind) => {
             evaluate(undefined, [inside], { inside });
@@ -92,6 +88,9 @@ export const MouseDirectiveHandler = CreateDirectiveHandlerCallback('mouse', ({ 
     }
     else if (argKey === 'move'){
         BindMouseMove(contextElement, position => evaluate(undefined, [position], { position }));
+    }
+    else if (argKey === 'repeat'){
+        BindMouseRepeat((component || FindComponentById(componentId)), contextElement, options.delay, streak => evaluate(undefined, [streak], { streak }));
     }
 });
 

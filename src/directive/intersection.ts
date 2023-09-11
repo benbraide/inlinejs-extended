@@ -13,23 +13,27 @@ import {
     IIntersectionOptions
 } from "@benbraide/inlinejs";
 
-type IntersectionVisibilityType = 'hidden' | 'visible' | 'visible.fully';
+type IntersectionStageType = 'partial' | 'full' | 'none';
+type IntersectionStateType = boolean | number | IntersectionStageType;
 
 interface IIntersectionState{
-    intersected: boolean;
-    visible: IntersectionVisibilityType;
-    ratio: number;
+    visible: boolean | null;
+    ratio: number | null;
+    stage: IntersectionStageType | null;
 }
 
 const IntersectionDirectiveName = 'intersection';
+
+const IntersectionRatioMultiplier = 10000;
+const IntersectionRatioThreshold = (99 * (IntersectionRatioMultiplier / 100));
 
 export const IntersectionDirectiveHandler = CreateDirectiveHandlerCallback(IntersectionDirectiveName, ({ componentId, component, contextElement, expression, argKey, argOptions }) => {
     if (BindEvent({ contextElement, expression,
         component: (component || componentId),
         key: IntersectionDirectiveName,
         event: argKey,
-        defaultEvent: 'intersected',
-        eventWhitelist: ['in', 'out', 'visibility', 'visible', 'hidden'],
+        defaultEvent: 'visible',
+        eventWhitelist: ['ratio', 'stage'],
         options: argOptions,
         optionBlacklist: ['window', 'document', 'outside', 'once'],
     })){
@@ -68,91 +72,52 @@ export const IntersectionDirectiveHandler = CreateDirectiveHandlerCallback(Inter
     expression = expression.trim();
     let evaluate = (expression ? EvaluateLater({ componentId, contextElement, expression }) : null);
 
-    let firstEntry = true, state: IIntersectionState = {
-        intersected: false,
-        visible: 'hidden',
-        ratio: 0,
+    let state: IIntersectionState = {
+        visible: null,
+        ratio: null,
+        stage: null,
     };
 
-    let getEventName = (name: string) => `${IntersectionDirectiveName}.${name}`, eventDispatchers = {
-        intersected: (value: boolean) => {
-            contextElement.dispatchEvent(new CustomEvent(getEventName('intersected'), {
-                detail: { value },
-            }));
-
-            contextElement.dispatchEvent(new CustomEvent(getEventName(value ? 'in' : 'out')));
-        },
-        visible: (value: IntersectionVisibilityType) => {
-            contextElement.dispatchEvent(new CustomEvent(getEventName('visibility'), {
-                detail: { value },
-            }));
-
-            if (value === 'visible.fully'){
-                contextElement.dispatchEvent(new CustomEvent(getEventName('visible')));
-            }
-            else if (value === 'hidden'){
-                contextElement.dispatchEvent(new CustomEvent(getEventName('hidden')));
-            }
-        },
-        ratio: (value: number) => {
-            contextElement.dispatchEvent(new CustomEvent(getEventName('ratio'), {
-                detail: { value },
-            }));
-        },
-    };
-
-    let id = resolvedComponent.GenerateUniqueId('intsn_proxy_'), updateState = (key: keyof IIntersectionState, value: boolean | number | IntersectionVisibilityType) => {
+    const getEventName = (name: string) => `${IntersectionDirectiveName}.${name}`;
+    const id = resolvedComponent.GenerateUniqueId('intsn_proxy_'), updateState = (key: keyof IIntersectionState, value: IntersectionStateType) => {
         if (state[key] !== value){
-            let component = FindComponentById(componentId);
-            if (component){//Alert change
-                AddChanges('set', `${id}.${key}`, key, component.GetBackend().changes);
-            }
-            
-            (eventDispatchers[key] as (state: boolean | number | IntersectionVisibilityType) => void)((state[key] as boolean | number | IntersectionVisibilityType) = value);
+            AddChanges('set', `${id}.${key}`, key, FindComponentById(componentId)?.GetBackend().changes);
+            contextElement.dispatchEvent(new CustomEvent(getEventName('ratio'), {
+                detail: { value: ((state[key] as IntersectionStateType) = value) },
+            }));
         }
-    };
-
-    let cloneState = () => {
-        let clone = {};
-        Object.entries(state).forEach(([key, value]) => (clone[key] = value));
-        return clone;
     };
 
     observer.Observe(contextElement, ({ id, entry } = {}) => {
-        if (!entry || firstEntry && !entry.isIntersecting){//Element is not initially visible
+        if (!entry){//Invalid
             return;
         }
 
-        let ratio = Math.round(entry.intersectionRatio * 100000)
+        let ratio = Math.round(entry.intersectionRatio * IntersectionRatioMultiplier);
         if (entry.isIntersecting){//In
-            if ((options.out && !options.in) || (options.in && options.fully && ratio < 99000)){
+            if ((options.out && !options.in) || (options.in && options.fully && ratio <= IntersectionRatioThreshold)){
                 return;//Only 'out' option sepcified OR 'in' and 'fully' options specified but is not fully visible
             }
 
-            updateState('intersected', true);
+            updateState('visible', true);
             updateState('ratio', entry.intersectionRatio);
-            updateState('visible', ((ratio >= 99000) ? <IntersectionVisibilityType>'visible.fully' : <IntersectionVisibilityType>'visible'));
+            updateState('stage', ((ratio <= IntersectionRatioThreshold) ? 'partial' : 'full'));
         }
-        else{//Out
-            if (options.in && !options.out){
-                return;//Only 'in' option sepcified
-            }
-
-            updateState('visible', <IntersectionVisibilityType>'hidden');
+        else if (state.visible === null || options.out || !options.in){//Out
+            updateState('visible', false);
             updateState('ratio', 0);
-            updateState('intersected', false);
+            updateState('stage', 'none');
+        }
+        else{//Only 'in' option sepcified
+            return;
         }
 
-        firstEntry = false;
-        if (evaluate){
-            evaluate(undefined, [cloneState()], {
-                state: cloneState(),
-            });
-        }
+        const clonedState = { ...state };
+        evaluate && evaluate(undefined, [clonedState], {
+            state: clonedState,
+        });
         
-        if (options.once){
-            FindComponentById(componentId)?.RemoveIntersectionObserver(id!);
-        }
+        options.once && FindComponentById(componentId)?.RemoveIntersectionObserver(id!);
     });
 
     let local = CreateInplaceProxy(BuildGetterProxyOptions({ getter: (prop) => {

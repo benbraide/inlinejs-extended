@@ -8,6 +8,7 @@ import { ServerConcept } from './concepts/server';
 
 import { AttrDirectiveHandlerCompact } from './directive/attr';
 import { IntersectionDirectiveHandlerCompact } from './directive/intersection';
+import { ResizeDirectiveHandlerCompact } from './directive/resize';
 import { TickDirectiveHandlerCompact } from './directive/tick';
 import { FormDirectiveHandlerCompact } from './directive/form';
 import { StateDirectiveHandlerCompact } from './directive/state';
@@ -31,6 +32,7 @@ export function InlineJSExtended(){
         
         AttrDirectiveHandlerCompact();
         IntersectionDirectiveHandlerCompact();
+        ResizeDirectiveHandlerCompact();
         TickDirectiveHandlerCompact();
         FormDirectiveHandlerCompact();
         StateDirectiveHandlerCompact();

@@ -126,7 +126,7 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
         return method;
     };
 
-    let buildUrl: (info: RequestInit) => string, eventName: string, eventHandler: ((e?: Event) => boolean) | null = null, fields: Record<string, string> = {};
+    let buildUrl: (info: RequestInit) => string, eventName: string, eventHandler: ((e?: Event) => boolean) | null = null, fields: Record<string, any> = {};
     if (contextElement instanceof HTMLFormElement){
         getAction = () => contextElement.action;
         getMethod = () => (contextElement.method || 'get').toLowerCase();
@@ -226,9 +226,35 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
         }
     };
 
-    let fieldExpressions = new Array<IFormFieldExpression>(), evaluateFieldExpressions = () => {
-        fieldExpressions.filter(info => (info.source === contextElement || contextElement.contains(info.source))).forEach((info) => {
-            EvaluateLater({ componentId, contextElement: info.source, expression: info.value })(value => (IsObject(value) && (fields = { ...fields, ...value })));
+    let fieldExpressions = new Array<IFormFieldExpression>(), evaluateFieldExpressions = (callback: () => void) => {
+        const filtered = fieldExpressions.filter(info => (info.source === contextElement || contextElement.contains(info.source))), complete = () => {
+            const promises = new Array<Promise<any>>(), promiseKeys = new Array<string>();
+            Object.entries(fields).forEach(([key, value]) => {
+                if (value instanceof Promise){
+                    promises.push(value);
+                    promiseKeys.push(key);
+                }
+            });
+
+            if (promises.length > 0){//Wait for promises
+                Promise.all(promises).then((values) => {
+                    values.forEach((value, index) => (fields[promiseKeys[index]] = value));
+                    callback();
+                }).catch((err) => {
+                    JournalError(err, `InlineJS.${FormDirectiveName}.HandleEvent`, contextElement);
+                    callback();
+                });
+            }
+            else{//No promises
+                callback();
+            }
+        };
+
+        filtered.forEach((info, index) => {
+            EvaluateLater({ componentId, contextElement: info.source, expression: info.value })((value) => {
+                IsObject(value) && (fields = { ...fields, ...value });
+                (index >= (filtered.length - 1)) && complete();
+            });
         });
     };
     
@@ -243,150 +269,147 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
             return;
         }
 
-        evaluateFieldExpressions();
-        
-        let info: RequestInit = {
-            method: computeMethod(),
-            credentials: 'same-origin',
-        };
-
         updateState('active', true);
         updateState('submitted', true);
 
-        let url = buildUrl(info);
-        if (info.method === 'post'){//Append applicable fields
-            (info.body = (info.body || new FormData));
-            if (FormTokenName in globalThis){
-                (info.body as FormData).append('_token', globalThis[FormTokenName]);
-            }
-
-            Object.entries(fields).forEach(([key, value]) => (info.body as FormData).append(key, value));
-        }
-        else{//Get | Head
-            appendFields(url, Object.entries(fields));
-        }
-        
-        let handleData = (data: string) => {
-            let response: any;
-            try{
-                response = JSON.parse(data);
-            }
-            catch{
-                response = null;
-            }
-            
-            updateState('active', false);
-            updateState('errors', {});
-
-            contextElement.dispatchEvent(new CustomEvent(`${FormDirectiveName}.submit`, {
-                detail: { response: response },
-            }));
-            
-            if (!response || !IsObject(response)){
-                return afterHandledEvent(true, response);
-            }
-
-            JournalTry(() => {
-                if (response.hasOwnProperty('failed')){
-                    let failed = response['failed'];
-                    Object.entries(IsObject(failed) ? failed : {}).forEach(([key, value]) => {
-                        state.errors[key] = value;
-
-                        if (form && !options.novalidate){//Set validation error
-                            let item = form.elements.namedItem(key);
-                            let local = (item && FindComponentById(componentId)?.FindElementLocalValue(<HTMLElement>item, `\$${StateDirectiveName}`, true));
-                            if (local && !GetGlobal().IsNothing(local)){
-                                local['setMessage'](Array.isArray(value) ? value.map(v => ToString(v)).join('\n') : ToString(value));
-                            }
-                        }
-                    });
-                }
-
-                if (!options.silent && (response.hasOwnProperty('alert') || response.hasOwnProperty('report'))){
-                    GetGlobal().GetConcept<IAlertConcept>('alert')?.Notify(response['alert'] || response['report']);
-                }
-
-                afterHandledEvent((response['ok'] !== false), response['data']);
-                if (response['ok'] === false){
-                    return;
-                }
-
-                let router = GetGlobal().GetConcept<any>('router'), after: (() => void) | null = null;
-                if (response.hasOwnProperty('redirect')){
-                    let redirect = response['redirect'];
-                    if (IsObject(redirect)){
-                        after = () => {
-                            if (!options.refresh && !redirect['refresh'] && router){
-                                router.Goto(redirect['page'], (options.reload || redirect['reload']), (response.hasOwnProperty('data') ? redirect['data'] : undefined));
-                            }
-                            else{
-                                window.location.href = redirect['page'];
-                            }
-                        };
-                    }
-                    else if (typeof redirect === 'string'){
-                        after = () => {
-                            if (!options.refresh && router){
-                                router.Goto(redirect, options.reload);
-                            }
-                            else{
-                                window.location.href = redirect;
-                            }
-                        };
-                    }
-                }
-                else if (options.refresh){
-                    after = () => window.location.reload();
-                }
-                else if (options.reload){
-                    after = () => (router ? router.Reload() : window.location.reload());
-                }
-                else if (options.reset && form){
-                    form.reset();
-                    FindComponentById(componentId)?.GetBackend().changes.AddNextTickHandler(() => form?.dispatchEvent(new CustomEvent(`${FormDirectiveName}.reset`)));
-                }
-
-                if (after){
-                    after();
-                }
-            }, `InlineJS.${FormDirectiveName}.HandleEvent`, contextElement);
-        };
-
-        if (options.upload || options.download || options.duplex){
-            let doWhile = (progress: number | string | IServerProgressInfo) => {
-                if (typeof progress === 'number'){
-                    contextElement.dispatchEvent(new CustomEvent(`${FormDirectiveName}.progress`, {
-                        detail: { progress },
-                    }));
-                }
-                else if (typeof progress !== 'string'){
-                    contextElement.dispatchEvent(new CustomEvent(`${FormDirectiveName}.progress`, {
-                        detail: { progress: { ...progress } },
-                    }));
-                }
+        evaluateFieldExpressions(() => {
+            const info: RequestInit = {
+                method: computeMethod(),
+                credentials: 'same-origin',
             };
-
-            let doFinal = (res: number | string | IServerProgressInfo) => ((typeof res === 'string') && handleData(res));
-            
-            if (options.upload){
-                doWhile(0);
-                GetGlobal().GetConcept<IServerConcept>(ServerConceptName)?.Upload(url, <FormData>info.body, info.method).While(doWhile).Final(doFinal);
+    
+            const url = buildUrl(info);
+            if (info.method === 'post'){//Append applicable fields
+                (info.body = (info.body || new FormData));
+                if (FormTokenName in globalThis){
+                    (info.body as FormData).append('_token', globalThis[FormTokenName]);
+                }
+    
+                Object.entries(fields).forEach(([key, value]) => (info.body as FormData).append(key, value));
             }
-            else if (options.download){
-                doWhile(0);
-                GetGlobal().GetConcept<IServerConcept>(ServerConceptName)?.Download(url, <FormData>info.body, info.method).While(doWhile).Final(doFinal);
+            else{//Get | Head
+                appendFields(url, Object.entries(fields));
+            }
+            
+            let handleData = (data: string) => {
+                let response: any;
+                try{
+                    response = JSON.parse(data);
+                }
+                catch{
+                    response = null;
+                }
+                
+                updateState('active', false);
+                updateState('errors', {});
+    
+                contextElement.dispatchEvent(new CustomEvent(`${FormDirectiveName}.submit`, {
+                    detail: { response: response },
+                }));
+                
+                if (!response || !IsObject(response)){
+                    return afterHandledEvent(true, response);
+                }
+    
+                JournalTry(() => {
+                    if (response.hasOwnProperty('failed')){
+                        let failed = response['failed'];
+                        Object.entries(IsObject(failed) ? failed : {}).forEach(([key, value]) => {
+                            state.errors[key] = value;
+    
+                            if (form && !options.novalidate){//Set validation error
+                                let item = form.elements.namedItem(key);
+                                let local = (item && FindComponentById(componentId)?.FindElementLocalValue(<HTMLElement>item, `\$${StateDirectiveName}`, true));
+                                if (local && !GetGlobal().IsNothing(local)){
+                                    local['setMessage'](Array.isArray(value) ? value.map(v => ToString(v)).join('\n') : ToString(value));
+                                }
+                            }
+                        });
+                    }
+    
+                    if (!options.silent && (response.hasOwnProperty('alert') || response.hasOwnProperty('report'))){
+                        GetGlobal().GetConcept<IAlertConcept>('alert')?.Notify(response['alert'] || response['report']);
+                    }
+    
+                    afterHandledEvent((response['ok'] !== false), response['data']);
+                    if (response['ok'] === false){
+                        return;
+                    }
+    
+                    let router = GetGlobal().GetConcept<any>('router'), after: (() => void) | null = null;
+                    if (response.hasOwnProperty('redirect')){
+                        let redirect = response['redirect'];
+                        if (IsObject(redirect)){
+                            after = () => {
+                                if (!options.refresh && !redirect['refresh'] && router){
+                                    router.Goto(redirect['page'], (options.reload || redirect['reload']), (response.hasOwnProperty('data') ? redirect['data'] : undefined));
+                                }
+                                else{
+                                    window.location.href = redirect['page'];
+                                }
+                            };
+                        }
+                        else if (typeof redirect === 'string'){
+                            after = () => {
+                                if (!options.refresh && router){
+                                    router.Goto(redirect, options.reload);
+                                }
+                                else{
+                                    window.location.href = redirect;
+                                }
+                            };
+                        }
+                    }
+                    else if (options.refresh){
+                        after = () => window.location.reload();
+                    }
+                    else if (options.reload){
+                        after = () => (router ? router.Reload() : window.location.reload());
+                    }
+                    else if (options.reset && form){
+                        form.reset();
+                        FindComponentById(componentId)?.GetBackend().changes.AddNextTickHandler(() => form?.dispatchEvent(new CustomEvent(`${FormDirectiveName}.reset`)));
+                    }
+    
+                    after && after();
+                }, `InlineJS.${FormDirectiveName}.HandleEvent`, contextElement);
+            };
+    
+            if (options.upload || options.download || options.duplex){
+                const doWhile = (progress: number | string | IServerProgressInfo) => {
+                    if (typeof progress === 'number'){
+                        contextElement.dispatchEvent(new CustomEvent(`${FormDirectiveName}.progress`, {
+                            detail: { progress },
+                        }));
+                    }
+                    else if (typeof progress !== 'string'){
+                        contextElement.dispatchEvent(new CustomEvent(`${FormDirectiveName}.progress`, {
+                            detail: { progress: { ...progress } },
+                        }));
+                    }
+                };
+    
+                const doFinal = (res: number | string | IServerProgressInfo) => ((typeof res === 'string') && handleData(res));
+                if (options.upload){
+                    doWhile(0);
+                    GetGlobal().GetConcept<IServerConcept>(ServerConceptName)?.Upload(url, <FormData>info.body, info.method).While(doWhile).Final(doFinal);
+                }
+                else if (options.download){
+                    doWhile(0);
+                    GetGlobal().GetConcept<IServerConcept>(ServerConceptName)?.Download(url, <FormData>info.body, info.method).While(doWhile).Final(doFinal);
+                }
+                else{
+                    doWhile(<IServerProgressInfo>{ isUpload: true, value: 0 });
+                    GetGlobal().GetConcept<IServerConcept>(ServerConceptName)?.Duplex(url, <FormData>info.body, info.method).While(doWhile).Final(doFinal);
+                }
             }
             else{
-                doWhile(<IServerProgressInfo>{ isUpload: true, value: 0 });
-                GetGlobal().GetConcept<IServerConcept>(ServerConceptName)?.Duplex(url, <FormData>info.body, info.method).While(doWhile).Final(doFinal);
+                GetGlobal().GetFetchConcept().Get(url, info).then(res => res.text()).then(handleData).catch((err) => {
+                    updateState('active', false);
+                    JournalError(err, `InlineJS.${FormDirectiveName}.HandleEvent`, contextElement);
+                });
             }
-        }
-        else{
-            GetGlobal().GetFetchConcept().Get(url, info).then(res => res.text()).then(handleData).catch((err) => {
-                updateState('active', false);
-                JournalError(err, `InlineJS.${FormDirectiveName}.HandleEvent`, contextElement);
-            });
-        }
+        });
     };
 
     resolvedComponent.FindElementScope(contextElement)?.SetLocal(localKey, CreateInplaceProxy(BuildGetterProxyOptions({

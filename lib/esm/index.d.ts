@@ -9,6 +9,7 @@ export * from './directive/intersection';
 export * from './directive/keyboard';
 export * from './directive/mouse';
 export * from './directive/overlay';
+export * from './directive/resize';
 export * from './directive/state';
 export * from './directive/tick';
 export * from './magic/fetch';

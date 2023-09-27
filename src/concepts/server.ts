@@ -68,6 +68,14 @@ export class ServerConcept implements IServerConcept{
     }
 
     public static TransformRequestInit(init: ServerRequestInitType): XMLHttpRequestBodyInit{
+        if (typeof init === 'object' && 'body' in init){
+            return init.body;
+        }
+
+        else if (init instanceof FormData){
+            return init;
+        }
+        
         if (!IsObject(init)){
             return <XMLHttpRequestBodyInit>init;
         }

@@ -12,7 +12,7 @@ export interface IServerProgressInfo{
     value: number;
 }
 
-export type ServerRequestInitType = XMLHttpRequestBodyInit | Record<string, any>;
+export type ServerRequestInitType = XMLHttpRequestBodyInit | RequestInit | Record<string, any>;
 
 export interface IServerConcept{
     Upload(url: string, init?: ServerRequestInitType, method?: string): Loop<number | string>;

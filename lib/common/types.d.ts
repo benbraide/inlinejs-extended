@@ -8,7 +8,7 @@ export interface IServerProgressInfo {
     isUpload: boolean;
     value: number;
 }
-export declare type ServerRequestInitType = XMLHttpRequestBodyInit | Record<string, any>;
+export declare type ServerRequestInitType = XMLHttpRequestBodyInit | RequestInit | Record<string, any>;
 export interface IServerConcept {
     Upload(url: string, init?: ServerRequestInitType, method?: string): Loop<number | string>;
     Download(url: string, init?: ServerRequestInitType, method?: string): Loop<number | string>;

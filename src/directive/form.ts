@@ -250,12 +250,17 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
             }
         };
 
-        filtered.forEach((info, index) => {
-            EvaluateLater({ componentId, contextElement: info.source, expression: info.value })((value) => {
-                IsObject(value) && (fields = { ...fields, ...value });
-                (index >= (filtered.length - 1)) && complete();
+        if (filtered.length > 0){
+            filtered.forEach((info, index) => {
+                EvaluateLater({ componentId, contextElement: info.source, expression: info.value })((value) => {
+                    IsObject(value) && (fields = { ...fields, ...value });
+                    (index >= (filtered.length - 1)) && complete();
+                });
             });
-        });
+        }
+        else{//No field expressions
+            complete();
+        }
     };
     
     let handleEvent = (e?: Event) => {

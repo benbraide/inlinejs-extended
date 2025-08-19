@@ -3,6 +3,10 @@ export interface IFormMiddleware {
     GetKey(): string;
     Handle(data?: any, component?: IComponent | string, contextElement?: HTMLElement): Promise<void | boolean>;
 }
+export interface IFormBlobResponse {
+    blob: Blob;
+    filename: string;
+}
 export declare const FormDirectiveHandler: import("@benbraide/inlinejs").IDirectiveHandlerCallbackDetails;
 export declare function FormDirectiveHandlerCompact(): void;
 export declare function AddFormMiddleware(middleware: IFormMiddleware): void;

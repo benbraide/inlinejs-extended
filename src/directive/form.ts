@@ -36,6 +36,11 @@ export interface IFormMiddleware{
     Handle(data?: any, component?: IComponent | string, contextElement?: HTMLElement): Promise<void | boolean>;
 }
 
+export interface IFormBlobResponse{
+    blob: Blob;
+    filename: string;
+}
+
 let FormMiddlewares: Record<string, IFormMiddleware> = {};
 
 const FormMethodVerbs = ['put', 'patch', 'delete'];
@@ -102,6 +107,8 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
             upload: false,
             download: false,
             duplex: false,
+            blob: false,
+            save: false,
         },
         list: argOptions,
         unknownCallback: ({ option }) => {
@@ -296,24 +303,68 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
                 appendFields(url, Object.entries(fields));
             }
             
-            let handleData = (data: string) => {
+            let handleData = (data: string|IFormBlobResponse) => {
+                updateState('active', false);
+                updateState('errors', {});
+
                 let response: any;
                 try{
-                    response = JSON.parse(data);
+                    response = typeof data === 'string' ? JSON.parse(data) : data;
                 }
                 catch{
                     response = null;
                 }
-                
-                updateState('active', false);
-                updateState('errors', {});
-    
-                contextElement.dispatchEvent(new CustomEvent(`${FormDirectiveName}.submit`, {
+
+                const event = new CustomEvent(`${FormDirectiveName}.submit`, {
                     detail: { response: response },
-                }));
+                    cancelable: true
+                });
+    
+                contextElement.dispatchEvent(event);
+
+                let router = GetGlobal().GetConcept<any>('router'), after: (() => void) | null = null;
+                if (options.refresh){
+                    after = () => window.location.reload();
+                }
+                else if (options.reload){
+                    after = () => (router ? router.Reload() : window.location.reload());
+                }
+                else if (options.reset && form){
+                    form.reset();
+                    FindComponentById(componentId)?.GetBackend().changes.AddNextTickHandler(() => form?.dispatchEvent(new CustomEvent(`${FormDirectiveName}.reset`)));
+                }
+
+                if (typeof data !== 'string'){
+                    if (!event.defaultPrevented && options.save){// Download file
+                        const blobUrl = URL.createObjectURL(data.blob);
+
+                        // Create a new anchor element to trigger the download.
+                        const link = document.createElement('a');
+                        link.href = blobUrl;
+
+                        // Set the download attribute to the desired filename.
+                        link.download = data.filename;
+
+                        document.body.appendChild(link);
+
+                        // Simulate a click on the anchor element to trigger the download.
+                        link.click();
+                        
+                        document.body.removeChild(link);
+                        window.URL.revokeObjectURL(blobUrl);
+                    }
+                    
+                    afterHandledEvent(true, data);
+                    after && after();
+
+                    return;
+                }
                 
                 if (!response || !IsObject(response)){
-                    return afterHandledEvent(true, response);
+                    afterHandledEvent(true, response);
+                    after && after();
+
+                    return;
                 }
     
                 JournalTry(() => {
@@ -341,7 +392,6 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
                         return;
                     }
     
-                    let router = GetGlobal().GetConcept<any>('router'), after: (() => void) | null = null;
                     if (response.hasOwnProperty('redirect')){
                         let redirect = response['redirect'];
                         if (IsObject(redirect)){
@@ -364,16 +414,6 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
                                 }
                             };
                         }
-                    }
-                    else if (options.refresh){
-                        after = () => window.location.reload();
-                    }
-                    else if (options.reload){
-                        after = () => (router ? router.Reload() : window.location.reload());
-                    }
-                    else if (options.reset && form){
-                        form.reset();
-                        FindComponentById(componentId)?.GetBackend().changes.AddNextTickHandler(() => form?.dispatchEvent(new CustomEvent(`${FormDirectiveName}.reset`)));
                     }
     
                     after && after();
@@ -409,10 +449,40 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
                 }
             }
             else{
-                GetGlobal().GetFetchConcept().Get(url, info).then(res => res.text()).then(handleData).catch((err) => {
-                    updateState('active', false);
-                    JournalError(err, `InlineJS.${FormDirectiveName}.HandleEvent`, contextElement);
-                });
+                const handler = (resolver: (res: Response) => Promise<string|IFormBlobResponse>) => {
+                    GetGlobal().GetFetchConcept().Get(url, info).then(res => res.ok ? resolver(res) : Promise.reject(new Error(res.statusText))).then(handleData).catch((err) => {
+                        updateState('active', false);
+                        JournalError(err, `InlineJS.${FormDirectiveName}.HandleEvent`, contextElement);
+                    });
+                };
+
+                if (options.blob){
+                    const getFileName = (res: Response) => {
+                        const contentDisposition = res.headers.get('Content-Disposition');
+                        if (contentDisposition) {
+                            // Use a regular expression to extract the filename from the header.
+                            const filenameMatch = contentDisposition.match(/filename\*?=['"]?(?:UTF-8''|[^;']*)?([^;\n"']*)['"]?/);
+
+                            if (filenameMatch && filenameMatch[1]) {
+                                return decodeURIComponent(filenameMatch[1].replace(/\+/g, ' '));// Decode the filename to handle special characters.
+                            }
+                        }
+
+                        return '';
+                    };
+                    
+                    handler((res) => res.blob().then((blob) => {
+                        const response: IFormBlobResponse = {
+                            blob,
+                            filename: getFileName(res),
+                        };
+
+                        return Promise.resolve(response);
+                    }));
+                }
+                else{
+                    handler((res) => res.text());
+                }
             }
         });
     };

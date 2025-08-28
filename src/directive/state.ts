@@ -84,7 +84,7 @@ function BindState(componentId: string, component: IComponent | null, contextEle
                 .filter(info => (info.message.length != 0));
         }
         
-        FindComponentById(componentId)?.GetBackend().changes.AddGetAccess(`${id}.message`);
+        GetGlobal().GetCurrentProxyAccessStorage()?.Put({ componentId, path: `${id}.message` });
 
         return <IErrorMessageInfo>{
             name: contextElement.getAttribute('name') || 'Unnamed',
@@ -95,7 +95,7 @@ function BindState(componentId: string, component: IComponent | null, contextEle
     let isInput = (contextElement instanceof HTMLInputElement || contextElement instanceof HTMLTextAreaElement), local = CreateInplaceProxy(BuildGetterProxyOptions({
         getter: (prop) => {
             if (prop && state.hasOwnProperty(prop)){
-                FindComponentById(componentId)?.GetBackend().changes.AddGetAccess(`${id}.${prop}`);
+                GetGlobal().GetCurrentProxyAccessStorage()?.Put({ componentId, path: `${id}.${prop}` });
                 return (state[prop] > 0);
             }
 
@@ -122,9 +122,11 @@ function BindState(componentId: string, component: IComponent | null, contextEle
 
             if (isFormElement && prop === 'setMessage'){
                 return (msg: string) => {
-                    (contextElement as HTMLInputElement).setCustomValidity(message = msg);
-                    if (!(contextElement as HTMLInputElement).validity.valid){
-                        offsetState('invalid', 1, 1);
+                    (contextElement as HTMLInputElement).setCustomValidity(msg);
+                    updateMessage((contextElement as HTMLInputElement).validationMessage);
+                    let isInvalid = !(contextElement as HTMLInputElement).validity.valid;
+                    if ((state.invalid > 0) !== isInvalid) {
+                        offsetState('invalid', isInvalid ? 1 : -1, 1);
                     }
                 };
             }

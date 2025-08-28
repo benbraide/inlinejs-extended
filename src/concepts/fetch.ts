@@ -1,4 +1,4 @@
-import { FetchPathHandlerType, IExtendedFetchConcept, IFetchMockResponseParams, NativeFetchConcept, TidyPath, PathToRelative } from "@benbraide/inlinejs";
+import { FetchPathHandlerType, IExtendedFetchConcept, IFetchMockResponseParams, NativeFetchConcept, TidyPath, PathToRelative, IsObject } from "@benbraide/inlinejs";
 
 interface IFetchPathHandlerInfo{
     path: string | RegExp;
@@ -33,7 +33,12 @@ export class FetchConcept extends NativeFetchConcept implements IExtendedFetchCo
                 if (err){
                     reject(err);
                 }
-                else{
+                else if (IsObject(response)) {
+                    resolve(new Response(JSON.stringify(response), {
+                        headers: { 'Content-Type': 'application/json' }
+                    }));
+                }
+                else {
                     resolve(new Response(response));
                 }
             };

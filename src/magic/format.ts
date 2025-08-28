@@ -47,9 +47,8 @@ export const FormatMagicHandler = CreateMagicHandlerCallback('format', ({ compon
             if (!parsed && parsed !== 0){
                 return parsed;
             }
-            
-            let fixed = (Math.round(parsed * 100) / 100).toFixed(dp || 0);
 
+            const fixed = parsed.toFixed(dp || 0);
             return (truncateZeroes ? fixed.replace(/(\.\d*?[1-9])0+$/g, "$1").replace(/\.0+$/g, '') : fixed);
         }),
         map: (data: any, keys: string | number | Array<string | number>) => StreamData(data, (data) => {
@@ -73,6 +72,32 @@ export const FormatMagicHandler = CreateMagicHandlerCallback('format', ({ compon
             }
 
             return data;
+        }),
+        currency: (data: any, currencyCode = 'USD', locale: string | undefined = undefined) => StreamData(data, (data) => {
+            const parsed = parseFloat(ToString(data));
+            if (isNaN(parsed)) {
+                return data;
+            }
+            try {
+                return new Intl.NumberFormat(locale, { style: 'currency', currency: currencyCode }).format(parsed);
+            }
+            catch { //Fallback for invalid currency code
+                return `${currencyCode} ${parsed.toFixed(2)}`;
+            }
+        }),
+        truncate: (data: any, limit: number, trail = '...') => StreamData(data, (data) => {
+            const str = ToString(data);
+            if (str.length <= limit) {
+                return str;
+            }
+            return `${str.substring(0, limit)}${trail}`;
+        }),
+        plural: (data: any, singular: string, plural?: string) => StreamData(data, (data) => {
+            const num = parseInt(ToString(data));
+            if (num === 1) {
+                return singular;
+            }
+            return (plural === undefined) ? `${singular}s` : plural;
         }),
     };
     

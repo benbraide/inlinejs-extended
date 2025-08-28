@@ -77,17 +77,19 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
     
     if (argKey in FormMiddlewares){//Bind data
         let evaluate = EvaluateLater({ componentId, contextElement, expression });
+
+        resolvedComponent.FindElementScope(contextElement)?.AddUninitCallback(() => {
+            let proxy = FindComponentById(componentId)?.FindElementLocalValue(contextElement, localKey, true);
+            if (proxy){
+                proxy.unbindMiddlewareData(contextElement);
+            }
+        });
+        
         return UseEffect({ componentId, contextElement,
             callback: () => evaluate((data) => {
-                let component = FindComponentById(componentId), proxy = component?.FindElementLocalValue(contextElement, localKey, true);
+                let proxy = FindComponentById(componentId)?.FindElementLocalValue(contextElement, localKey, true);
                 if (proxy){//Bind data
                     proxy.bindMiddlewareData(argKey, data, contextElement);
-                    component!.FindElementScope(contextElement)?.AddUninitCallback(() => {
-                        let proxy = FindComponentById(componentId)?.FindElementLocalValue(contextElement, localKey, true);
-                        if (proxy){
-                            proxy.unbindMiddlewareData(contextElement);
-                        }
-                    });
                 }
             }),
         });
@@ -164,7 +166,7 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
             eventName = 'change';
         }
         
-        buildUrl = () => (fields[contextElement.getAttribute('name') || 'value'] = contextElement.value);
+        buildUrl = getAction;
     }
     else{//Unknown
         let isAnchor = (contextElement instanceof HTMLAnchorElement);
@@ -249,7 +251,7 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
                     callback();
                 }).catch((err) => {
                     JournalError(err, `InlineJS.${FormDirectiveName}.HandleEvent`, contextElement);
-                    callback();
+                    updateState('active', false);
                 });
             }
             else{//No promises
@@ -285,6 +287,10 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
         updateState('submitted', true);
 
         evaluateFieldExpressions(() => {
+            if (contextElement instanceof HTMLInputElement || contextElement instanceof HTMLTextAreaElement || contextElement instanceof HTMLSelectElement){
+                fields[contextElement.getAttribute('name') || 'value'] = contextElement.value;
+            }
+            
             const info: RequestInit = {
                 method: computeMethod(),
                 credentials: 'same-origin',
@@ -303,7 +309,7 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
                 appendFields(url, Object.entries(fields));
             }
             
-            let handleData = (data: string|IFormBlobResponse) => {
+            let handleData = (data: string | IFormBlobResponse) => {
                 updateState('active', false);
                 updateState('errors', {});
 
@@ -490,7 +496,7 @@ export const FormDirectiveHandler = CreateDirectiveHandlerCallback(FormDirective
     resolvedComponent.FindElementScope(contextElement)?.SetLocal(localKey, CreateInplaceProxy(BuildGetterProxyOptions({
         getter: (prop) => {
             if (prop && state.hasOwnProperty(prop)){
-                FindComponentById(componentId)?.GetBackend().changes.AddGetAccess(`${id}.${prop}`);
+                GetGlobal().GetCurrentProxyAccessStorage()?.Put({ componentId, path: `${id}.${prop}` });
                 return state[prop];
             }
 

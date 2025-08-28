@@ -61,7 +61,7 @@ export const ResizeDirectiveHandler = CreateDirectiveHandlerCallback(ResizeDirec
     const id = resolvedComponent.GenerateUniqueId('intsn_proxy_'), updateState = (key: keyof IResizeState, value: number) => {
         if (state[key] !== value){
             AddChanges('set', `${id}.${key}`, key, FindComponentById(componentId)?.GetBackend().changes);
-            (state[key] as number) = value;
+            state[key] = value;
             return true;
         }
         return false;
@@ -114,6 +114,8 @@ export const ResizeDirectiveHandler = CreateDirectiveHandlerCallback(ResizeDirec
     }, lookup: [...Object.keys(state), 'contentRect'], alert: { componentId, id } }));
 
     resolvedComponent.FindElementScope(contextElement)?.SetLocal(`\$${ResizeDirectiveName}`, local);
+
+    resolvedComponent.FindElementScope(contextElement)?.AddUninitCallback(() => observer.Unobserve(contextElement));
 });
 
 export function ResizeDirectiveHandlerCompact(){

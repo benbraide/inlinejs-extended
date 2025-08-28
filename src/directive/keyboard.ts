@@ -17,12 +17,33 @@ function BindKeyboardInside(contextElement: HTMLElement, callback: (isInside: bo
 }
 
 function BindKeyboardKey(contextElement: HTMLElement, key: 'down' | 'up', callback: (key: string) => void){
-    let lastValue = '', callCallback = (value: string) => {
-        if (value !== lastValue){
-            callback(lastValue = value);
+    contextElement.addEventListener(`key${key}`, (e) => callback(e.key));
+}
+
+function BindKeyboardState(contextElement: HTMLElement, callback: (keys: Array<string>) => void): () => void{
+    const held = new Set<string>();
+
+    const onDown = (e: KeyboardEvent) => {
+        if (!held.has(e.key)) {
+            held.add(e.key);
+            callback(Array.from(held));
         }
     };
-    contextElement.addEventListener(`key${key}`, (e) => callCallback(e.key));
+
+    const onUp = (e: KeyboardEvent) => {
+        if (held.has(e.key)) {
+            held.delete(e.key);
+            callback(Array.from(held));
+        }
+    };
+
+    contextElement.addEventListener('keydown', onDown);
+    contextElement.addEventListener('keyup', onUp);
+    
+    return () => {
+        contextElement.removeEventListener('keydown', onDown);
+        contextElement.removeEventListener('keyup', onUp);
+    };
 }
 
 const DefaultKeyboardTypeDelay = 500;
@@ -77,6 +98,13 @@ export const KeyboardDirectiveHandler = CreateDirectiveHandlerCallback('keyboard
     }
     else if (argKey === 'down' || argKey === 'up'){
         BindKeyboardKey(contextElement, argKey, key => evaluate(undefined, [key], { key }));
+    }
+    else if (argKey === 'held'){
+        const unbind = BindKeyboardState(contextElement, (keys) => {
+            evaluate(undefined, [keys], { keys });
+        });
+        
+        (component || FindComponentById(componentId))?.FindElementScope(contextElement)?.AddUninitCallback(unbind);
     }
     else if (argKey === 'type'){
         BindKeyboardType((component || FindComponentById(componentId)), contextElement, options.delay, typing => evaluate(undefined, [typing], { typing }));

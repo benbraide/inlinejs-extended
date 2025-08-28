@@ -19,13 +19,14 @@ function BindMouseInside(contextElement: HTMLElement, callback: (isInside: boole
 const DefaultMouseDelay = 100;
 const DefaultMouseDebounce = 250;
 
-function BindMouseRepeat(component: IComponent | null, contextElement: HTMLElement, delay: number, callback: (streak: number) => void){
+function BindMouseRepeat(component: IComponent | null, contextElement: HTMLElement, delay: number, debounce: number, callback: (streak: number) => void){
     let checkpoint = 0, streak = 0, reset = () => {
         ++checkpoint;
         streak = 0;
     };
 
     component?.FindElementScope(contextElement)?.AddUninitCallback(reset);
+
     let afterDelay = (myCheckpoint: number) => {
         if (myCheckpoint == checkpoint){
             callback(++streak);
@@ -34,16 +35,14 @@ function BindMouseRepeat(component: IComponent | null, contextElement: HTMLEleme
     };
 
     contextElement.addEventListener('mousedown', () => {
+        streak = 0;
         let myCheckpoint = ++checkpoint;
         callback(++streak);
-        setTimeout(() => afterDelay(myCheckpoint), ((delay < 0) ? DefaultMouseDebounce : delay));
+        setTimeout(() => afterDelay(myCheckpoint), ((debounce < 0) ? DefaultMouseDebounce : debounce));
     });
 
     contextElement.addEventListener('mouseup', reset);
-    contextElement.addEventListener('mouseenter', reset);
     contextElement.addEventListener('mouseleave', reset);
-    contextElement.addEventListener('mouseover', reset);
-    contextElement.addEventListener('mouseout', reset);
 }
 
 interface IMouseCoordinate{
@@ -90,7 +89,7 @@ export const MouseDirectiveHandler = CreateDirectiveHandlerCallback('mouse', ({ 
         BindMouseMove(contextElement, position => evaluate(undefined, [position], { position }));
     }
     else if (argKey === 'repeat'){
-        BindMouseRepeat((component || FindComponentById(componentId)), contextElement, options.delay, streak => evaluate(undefined, [streak], { streak }));
+        BindMouseRepeat((component || FindComponentById(componentId)), contextElement, options.delay, options.debounce, streak => evaluate(undefined, [streak], { streak }));
     }
 });
 

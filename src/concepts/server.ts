@@ -4,7 +4,7 @@ import { IServerConcept, IServerProgressHandlers, IServerProgressInfo, ServerReq
 export class ServerConcept implements IServerConcept{
     public Upload(url: string, init?: ServerRequestInitType, method = 'POST'): Loop<number | string>{
         return new Loop((doWhile, doFinal, doAbort) => {
-            this.Get_(url, method, response => doFinal(response), doAbort, <XMLHttpRequestBodyInit>init, {
+            this.Get_(url, method, response => doFinal(response), doAbort, init, {
                 upload: progress => doWhile(progress.lengthComputable ? (progress.loaded / progress.total) : 0),
             });
         });
@@ -12,7 +12,7 @@ export class ServerConcept implements IServerConcept{
 
     public Download(url: string, init?: ServerRequestInitType, method = 'POST'): Loop<number | string>{
         return new Loop((doWhile, doFinal, doAbort) => {
-            this.Get_(url, method, response => doFinal(response), doAbort, <XMLHttpRequestBodyInit>init, {
+            this.Get_(url, method, response => doFinal(response), doAbort, init, {
                 download: progress => doWhile(progress.lengthComputable ? (progress.loaded / progress.total) : 0),
             });
         });
@@ -20,7 +20,7 @@ export class ServerConcept implements IServerConcept{
 
     public Duplex(url: string, init?: ServerRequestInitType, method = 'POST'): Loop<IServerProgressInfo | string>{
         return new Loop((doWhile, doFinal, doAbort) => {
-            this.Get_(url, method, response => doFinal(response), doAbort, <XMLHttpRequestBodyInit>init, {
+            this.Get_(url, method, response => doFinal(response), doAbort, init, {
                 download: progress => doWhile({
                     isUpload: false,
                     value: (progress.lengthComputable ? (progress.loaded / progress.total) : 0),
@@ -44,9 +44,11 @@ export class ServerConcept implements IServerConcept{
         };
 
         let onLoad = (e: ProgressEvent<XMLHttpRequestEventTarget>) => {
-            (progressHandlers?.download && progressHandlers.download(e));
-            
-            handler(request.responseText);
+            if (request.status >= 200 && request.status < 300){
+                handler(request.responseText);
+            } else{
+                errorHandler(request.statusText, request.status);
+            }
             clean();
         };
 

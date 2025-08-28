@@ -8,7 +8,8 @@ import {
     BuildProxyOptions,
     CreateInplaceProxy,
     CreateLoop,
-    ILoopCallbackInfo
+    ILoopCallbackInfo,
+    GetGlobal
 } from "@benbraide/inlinejs";
 
 export const TickDirectiveHandler = CreateDirectiveHandlerCallback('tick', ({ component, componentId, contextElement, expression, argOptions }) => {
@@ -59,7 +60,6 @@ export const TickDirectiveHandler = CreateDirectiveHandlerCallback('tick', ({ co
 
     let run = () => {
         CreateLoop(0, getDelay(), 0, 0, options.vsync).While(step.bind(null, ++state.checkpoint));
-        evaluate();
     };
 
     let updateState = (key: string, value: number | boolean, shouldEvaluate = false) => {
@@ -118,7 +118,7 @@ export const TickDirectiveHandler = CreateDirectiveHandlerCallback('tick', ({ co
         }
         
         if (prop === 'steps' || prop === 'running'){
-            FindComponentById(componentId)?.GetBackend().changes.AddGetAccess(`${id}.${prop}`);
+            GetGlobal().GetCurrentProxyAccessStorage()?.Put({ componentId, path: `${id}.${prop}` });
             return state[prop];
         }
 

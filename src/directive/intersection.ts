@@ -81,9 +81,10 @@ export const IntersectionDirectiveHandler = CreateDirectiveHandlerCallback(Inter
     const getEventName = (name: string) => `${IntersectionDirectiveName}.${name}`;
     const id = resolvedComponent.GenerateUniqueId('intsn_proxy_'), updateState = (key: keyof IIntersectionState, value: IntersectionStateType) => {
         if (state[key] !== value){
+            (state[key] as IntersectionStateType) = value;
             AddChanges('set', `${id}.${key}`, key, FindComponentById(componentId)?.GetBackend().changes);
-            contextElement.dispatchEvent(new CustomEvent(getEventName('ratio'), {
-                detail: { value: ((state[key] as IntersectionStateType) = value) },
+            contextElement.dispatchEvent(new CustomEvent(getEventName(key), {
+                detail: { value: value },
             }));
         }
     };

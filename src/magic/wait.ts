@@ -1,4 +1,4 @@
-import { FindComponentById, CreateMagicHandlerCallback, AddMagicHandler } from "@benbraide/inlinejs";
+import { FindComponentById, CreateMagicHandlerCallback, AddMagicHandler, GetGlobal } from "@benbraide/inlinejs";
 
 interface CachedWaitInfo{
     componentId: string;
@@ -35,7 +35,7 @@ export function Wait(componentId: string, data: any, transitionData?: any, conte
     }
 
     cachedWaits.push({ componentId, id, data, transitionData, contextElement });
-    FindComponentById(componentId)?.GetBackend().changes.AddGetAccess(`${id}.resolved`);
+    GetGlobal().GetCurrentProxyAccessStorage()?.Put({ componentId, path: `${id}.resolved` });
 
     data.then((value) => {
         let cache = cachedWaits.find(info => (info.id === id));

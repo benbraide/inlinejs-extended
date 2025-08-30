@@ -1,31 +1,31 @@
 import { FindComponentById, AddDirectiveHandler, CreateDirectiveHandlerCallback, EvaluateLater, IComponent, ResolveOptions } from "@benbraide/inlinejs";
 
-function BindMouseInside(contextElement: HTMLElement, callback: (isInside: boolean, unbind: () => void) => void){
+function BindMouseInside(contextElement: HTMLElement | Document | (Window & typeof globalThis), callback: (isInside: boolean) => void){
     let lastValue = false, callCallback = (value: boolean) => {
         if (value != lastValue){
-            callback((lastValue = value), unbind);
+            callback(lastValue = value);
         }
     };
     
-    let onEnter = () => callCallback(true), onLeave = () => callCallback(false), unbind = () => {
+    const onEnter = () => callCallback(true), onLeave = () => callCallback(false), unbind = () => {
         contextElement.removeEventListener('mouseleave', onLeave);
         contextElement.removeEventListener('mouseenter', onEnter);
     };
     
     contextElement.addEventListener('mouseenter', onEnter);
     contextElement.addEventListener('mouseleave', onLeave);
+
+    return unbind;
 }
 
 const DefaultMouseDelay = 100;
 const DefaultMouseDebounce = 250;
 
-function BindMouseRepeat(component: IComponent | null, contextElement: HTMLElement, delay: number, debounce: number, callback: (streak: number) => void){
+function BindMouseRepeat(contextElement: HTMLElement | Document | (Window & typeof globalThis), delay: number, debounce: number, callback: (streak: number) => void){
     let checkpoint = 0, streak = 0, reset = () => {
         ++checkpoint;
         streak = 0;
     };
-
-    component?.FindElementScope(contextElement)?.AddUninitCallback(reset);
 
     let afterDelay = (myCheckpoint: number) => {
         if (myCheckpoint == checkpoint){
@@ -34,15 +34,22 @@ function BindMouseRepeat(component: IComponent | null, contextElement: HTMLEleme
         }
     };
 
-    contextElement.addEventListener('mousedown', () => {
+    const handler = () => {
         streak = 0;
         let myCheckpoint = ++checkpoint;
         callback(++streak);
         setTimeout(() => afterDelay(myCheckpoint), ((debounce < 0) ? DefaultMouseDebounce : debounce));
-    });
-
+    };
+    
+    contextElement.addEventListener('mousedown', handler);
     contextElement.addEventListener('mouseup', reset);
     contextElement.addEventListener('mouseleave', reset);
+
+    return () => {
+        contextElement.removeEventListener('mousedown', handler);
+        contextElement.removeEventListener('mouseup', reset);
+        contextElement.removeEventListener('mouseleave', reset);
+    };
 }
 
 interface IMouseCoordinate{
@@ -51,14 +58,29 @@ interface IMouseCoordinate{
     screen: { x: number, y: number };
 }
 
-function BindMouseMove(contextElement: HTMLElement, callback: (count: IMouseCoordinate | null) => void){
-    contextElement.addEventListener('mousemove', e => callback({
-        client: { x: e.clientX, y: e.clientY },
-        offset: { x: e.offsetX, y: e.offsetY },
-        screen: { x: e.screenX, y: e.screenY },
-    }));
+function BindMouseMove(contextElement: HTMLElement | Document | (Window & typeof globalThis), callback: (count: IMouseCoordinate | null) => void){
+    const moveHandler = (e: Event) => {
+        if (e instanceof MouseEvent){
+            callback({
+                client: { x: e.clientX, y: e.clientY },
+                offset: { x: e.offsetX, y: e.offsetY },
+                screen: { x: e.screenX, y: e.screenY },
+            });
+        }
+        else{
+            callback(null);
+        }
+    };
 
-    contextElement.addEventListener('mouseleave', () => callback(null));
+    const leaveHandler = () => callback(null);
+    
+    contextElement.addEventListener('mousemove', moveHandler);
+    contextElement.addEventListener('mouseleave', leaveHandler);
+
+    return () => {
+        contextElement.removeEventListener('mousemove', moveHandler);
+        contextElement.removeEventListener('mouseleave', leaveHandler);
+    };
 }
 
 export const MouseDirectiveHandler = CreateDirectiveHandlerCallback('mouse', ({ componentId, component, contextElement, expression, argKey, argOptions }) => {
@@ -71,26 +93,33 @@ export const MouseDirectiveHandler = CreateDirectiveHandlerCallback('mouse', ({ 
             delay: -1,
             debounce: -1,
             once: false,
+            document: false,
+            window: false,
         },
         list: argOptions,
         defaultNumber: -1,
-    });
+    }), unbind: (() => void) | null = null;
 
     const evaluate = EvaluateLater({ componentId, contextElement, expression });
+    const target = options.window ? window : (options.document ? globalThis.document : contextElement);
+    
     if (argKey === 'inside'){
-        BindMouseInside(contextElement, (inside, unbind) => {
+        unbind = BindMouseInside(target, (inside) => {
             evaluate(undefined, [inside], { inside });
             if (options.once){
-                unbind();
+                unbind?.();
+                unbind = null;
             }
         });
     }
     else if (argKey === 'move'){
-        BindMouseMove(contextElement, position => evaluate(undefined, [position], { position }));
+        unbind = BindMouseMove(target, position => evaluate(undefined, [position], { position }));
     }
     else if (argKey === 'repeat'){
-        BindMouseRepeat((component || FindComponentById(componentId)), contextElement, options.delay, options.debounce, streak => evaluate(undefined, [streak], { streak }));
+        unbind = BindMouseRepeat(target, options.delay, options.debounce, streak => evaluate(undefined, [streak], { streak }));
     }
+
+    unbind && (component || FindComponentById(componentId))?.FindElementScope(contextElement)?.AddUninitCallback(() => unbind?.());
 });
 
 export function MouseDirectiveHandlerCompact(){

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>[x-cloak] { display: none; }</style>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { border: 1px solid #ccc; margin: 10px 0; padding: 15px; }
+        .success { color: green; }
+        .error { color: red; }
+        button { margin: 5px; padding: 5px 10px; }
+    </style>
+</head>
+<body>
+    <h1>InlineJS Extended Validation Tests</h1>
+    
+    <!-- Test 1: Basic InlineJS functionality -->
+    <div class="test-section">
+        <h2>Test 1: Basic InlineJS Data Binding</h2>
+        <div x-data="{ message: 'Test successful!', count: 0 }" x-cloak>
+            <p x-text="message"></p>
+            <p>Count: <span x-text="count"></span></p>
+            <button x-on:click="count++">Test Click</button>
+            <button x-on:click="count = 0">Reset</button>
+        </div>
+    </div>
+
+    <!-- Test 2: Format magic property -->
+    <div class="test-section">
+        <h2>Test 2: $format Magic Property</h2>
+        <div x-data="{ 
+            number: 1234567.89,
+            date: new Date(),
+            text: 'hello world'
+        }" x-cloak>
+            <p>Original number: <span x-text="number"></span></p>
+            <p>Formatted with comma: <span x-text="$format.comma(number)"></span></p>
+            <p>Rounded to 1 decimal: <span x-text="$format.round(number, 1)"></span></p>
+            <p>Original text: <span x-text="text"></span></p>
+            <p>Uppercase: <span x-text="$format.upperCase(text)"></span></p>
+            <p>Title case: <span x-text="$format.titleCase(text)"></span></p>
+        </div>
+    </div>
+
+    <!-- Test 3: State directive -->
+    <div class="test-section">
+        <h2>Test 3: x-state Directive</h2>
+        <div x-data="{ stateValue: 'initial state' }" x-cloak>
+            <p>Current state: <span x-text="stateValue"></span></p>
+            <input x-model="stateValue" placeholder="Change state">
+            <div x-state="{ key: 'testState', value: stateValue }">
+                State directive active
+            </div>
+        </div>
+    </div>
+
+    <!-- Test 4: Intersection directive -->
+    <div class="test-section">
+        <h2>Test 4: x-intersection Directive</h2>
+        <div x-data="{ visible: false, ratio: 0 }" x-cloak>
+            <p>Element visible: <span x-text="visible ? 'Yes' : 'No'" x-class:success="visible" x-class:error="!visible"></span></p>
+            <p>Visibility ratio: <span x-text="Math.round(ratio * 100) + '%'"></span></p>
+            <div 
+                x-intersection:visible="visible = $event.detail.visible"
+                x-intersection:ratio="ratio = $event.detail.ratio"
+                style="height: 100px; background: #f0f0f0; margin: 10px 0; padding: 20px;">
+                Scroll to see intersection changes
+            </div>
+        </div>
+    </div>
+
+    <!-- Test 5: Fetch magic (without actual network request) -->
+    <div class="test-section">
+        <h2>Test 5: $fetch Magic Property</h2>
+        <div x-data="{ 
+            fetchAvailable: false,
+            formDataTest: null
+        }" x-init="
+            fetchAvailable = typeof $fetch !== 'undefined';
+            if (fetchAvailable) {
+                formDataTest = $fetch.formData({ key1: 'value1', key2: 'value2' });
+            }
+        " x-cloak>
+            <p>$fetch available: <span x-text="fetchAvailable ? 'Yes' : 'No'" x-class:success="fetchAvailable" x-class:error="!fetchAvailable"></span></p>
+            <p x-show="fetchAvailable">FormData created: <span x-text="formDataTest ? 'Yes' : 'No'"></span></p>
+        </div>
+    </div>
+
+    <!-- Test 6: Wait magic property -->
+    <div class="test-section">
+        <h2>Test 6: $wait Magic Property</h2>
+        <div x-data="{ 
+            waitResult: null,
+            loading: false,
+            testPromise() {
+                this.loading = true;
+                this.waitResult = null;
+                const promise = new Promise(resolve => {
+                    setTimeout(() => resolve('Promise resolved!'), 1000);
+                });
+                this.waitResult = $wait(promise, 'Loading...');
+                promise.then(result => {
+                    this.loading = false;
+                    this.waitResult = result;
+                });
+            }
+        }" x-cloak>
+            <button x-on:click="testPromise()">Test $wait</button>
+            <p x-show="waitResult" x-text="waitResult"></p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results Summary</h2>
+        <p>If all tests show expected behavior without JavaScript errors, the build is working correctly.</p>
+        <p><strong>Expected behavior:</strong></p>
+        <ul>
+            <li>Test 1: Counter increments and resets</li>
+            <li>Test 2: Numbers and text are formatted correctly</li>
+            <li>Test 3: State updates when typing</li>
+            <li>Test 4: Intersection state changes when scrolling</li>
+            <li>Test 5: $fetch is available</li>
+            <li>Test 6: $wait handles promises with loading states</li>
+        </ul>
+    </div>
+
+    <script src="dist/inlinejs-extended.js"></script>
+</body>
+</html>

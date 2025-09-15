@@ -42,10 +42,33 @@ npm run prepublishOnly
   - `lib/esm/` - ES modules with TypeScript declarations  
   - `dist/` - Browser-ready bundles (development and minified production)
 
-### Testing
+### Manual Testing
 - **No test suite**: This repository does not contain automated tests (`src/**/*.spec.ts` patterns are empty)
-- **Manual testing**: Test functionality using HTML files that import the built JavaScript
 - **Browser testing required**: Library depends on browser APIs (DOM, window object)
+- **Dependency note**: InlineJS Extended requires the base InlineJS library to function
+
+### Testing the Built Library
+The built `inlinejs-extended.js` file extends InlineJS but does not include the base framework. For testing:
+
+1. **Include base InlineJS first** (from CDN or separate install):
+   ```html
+   <script src="https://unpkg.com/@benbraide/inlinejs@latest/dist/inlinejs.js"></script>
+   ```
+
+2. **Then include InlineJS Extended**:
+   ```html
+   <script src="dist/inlinejs-extended.js"></script>
+   ```
+
+3. **Alternative: Use the library programmatically** for module environments:
+   ```js
+   import { BootstrapAndAttach } from '@benbraide/inlinejs';
+   import { InlineJSExtended } from '@benbraide/inlinejs-extended';
+   
+   InlineJSExtended().then(() => {
+       BootstrapAndAttach();
+   });
+   ```
 
 ## Project Structure
 
@@ -100,7 +123,7 @@ npm run prepublishOnly
    npm run compile && npm run build
    ```
 
-2. **Create a test HTML file** to validate functionality:
+2. **Create a test HTML file** to validate functionality (requires base InlineJS):
    ```html
    <!DOCTYPE html>
    <html>
@@ -113,6 +136,10 @@ npm run prepublishOnly
            <p>Count: <span x-text="count"></span></p>
            <button x-on:click="count++">Test Click</button>
        </div>
+       
+       <!-- Include base InlineJS first -->
+       <script src="https://unpkg.com/@benbraide/inlinejs@latest/dist/inlinejs.js"></script>
+       <!-- Then include Extended -->
        <script src="dist/inlinejs-extended.js"></script>
    </body>
    </html>
@@ -127,6 +154,38 @@ npm run prepublishOnly
    - No JavaScript errors in console
    - Data binding works (text updates, click handlers respond)
    - Extended features work as expected
+   - Elements with x-cloak become visible after initialization
+
+## Validation Scenarios for Extended Features
+
+### Testing Form Directive
+```html
+<div x-data="{ name: '', submitted: false }">
+    <form x-form="{ success: submitted = true }">
+        <input x-model="name" name="name" required>
+        <button type="submit">Submit</button>
+    </form>
+    <p x-show="submitted">Form submitted!</p>
+</div>
+```
+
+### Testing Format Magic
+```html
+<div x-data="{ number: 1234567.89, text: 'hello world' }">
+    <p x-text="$format.comma(number)"></p>
+    <p x-text="$format.upperCase(text)"></p>
+</div>
+```
+
+### Testing Intersection Directive
+```html
+<div x-data="{ visible: false }">
+    <p x-text="visible ? 'Visible' : 'Not visible'"></p>
+    <div x-intersection:visible="visible = $event.detail.visible">
+        Watch me scroll into view
+    </div>
+</div>
+```
 
 ## Build Timing and Timeouts
 
@@ -142,6 +201,7 @@ npm run prepublishOnly
 ### Build Failures
 - **"window is not defined"**: Normal when testing Node.js imports - library requires browser environment
 - **TypeScript errors**: Check `tsconfig.json` and ensure all dependencies are installed
+- **ES2015 compatibility**: Use bracket notation instead of newer array methods (e.g., `array[index]` instead of `array.at(index)`)
 - **Webpack errors**: Verify `webpack.config.js` paths and ts-loader configuration
 
 ### Missing Dependencies
@@ -150,7 +210,14 @@ npm run prepublishOnly
 
 ### Testing Issues
 - **"No test files found"**: This is expected - repository has no automated tests
-- **Manual testing required**: Create HTML files that import the built JavaScript
+- **Manual testing required**: Create HTML files that import both base InlineJS and the extended version
+- **Elements stay hidden**: Ensure base InlineJS is loaded before the extended library
+- **Extended features not working**: Verify both scripts loaded and no console errors
+
+### Development Workflow Issues
+- **Changes not reflected**: Always run full build process after code changes
+- **Debugging**: Use browser dev tools to check for script loading errors
+- **Performance**: Use minified version (`inlinejs-extended.min.js`) for production
 
 ## Dependencies
 - **Runtime**: `@benbraide/inlinejs` (core framework)

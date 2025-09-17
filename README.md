@@ -1,627 +1,663 @@
-# InlineJS
+# InlineJS Extended
 
-[![npm (scoped)](https://img.shields.io/npm/v/@benbraide/inlinejs.svg)](https://www.npmjs.com/package/@benbraide/inlinejs) [![npm bundle size (minified)](https://img.shields.io/bundlephobia/min/@benbraide/inlinejs.svg)](https://www.npmjs.com/package/@benbraide/inlinejs)
+[![npm (scoped)](https://img.shields.io/npm/v/@benbraide/inlinejs-extended.svg)](https://www.npmjs.com/package/@benbraide/inlinejs-extended) [![npm bundle size (minified)](https://img.shields.io/bundlephobia/min/@benbraide/inlinejs-extended.svg)](https://www.npmjs.com/package/@benbraide/inlinejs-extended)
 
-Run JavaScript code by embedding them in your HTML using the element as context.
+Extended directives and magic properties for the InlineJS framework, providing enhanced form handling, fetch utilities, formatting, state management, intersection observing, overlay management, and more.
 
-InlineJS is component-based spin-off to [Alpine.js](https://github.com/alpinejs/alpine).
+InlineJS Extended builds upon the [InlineJS framework](https://github.com/benbraide/inlinejs) to provide additional functionality for modern web applications.
 
-Like `Alpine.js`, it works without creating shadow DOMs.
+**Note:** This library requires the base [InlineJS framework](https://www.npmjs.com/package/@benbraide/inlinejs) to function.
 
 ## Install
 
- - Grab source or distribution versions from `GitHub`
- - Include script in your HTML file.
-## NPM Install
+### CDN
 
+Include the base InlineJS framework first, then include InlineJS Extended:
+
+```html
+<!-- Base InlineJS framework (required) -->
+<script src="https://unpkg.com/@benbraide/inlinejs@latest/dist/inlinejs.js"></script>
+<!-- InlineJS Extended -->
+<script src="https://unpkg.com/@benbraide/inlinejs-extended@latest/dist/inlinejs-extended.js"></script>
 ```
-npm install @benbraide/inlinejs
+
+### NPM Install
+
+```bash
+npm install @benbraide/inlinejs @benbraide/inlinejs-extended
 ```
 
 ## Initialization
+
+### Browser (CDN)
+When using the CDN scripts, InlineJS Extended will automatically initialize and register all extended directives and magic properties.
+
+### Module Environment
 ```js
-import { BootstrapAndAttach } from  '@benbraide/inlinejs/bootstrap/attach';
+import { BootstrapAndAttach } from '@benbraide/inlinejs';
+import { InlineJSExtended } from '@benbraide/inlinejs-extended';
 
-BootstrapAndAttach();
-```
->`BootstrapAndAttach` takes an optional DOM element to search. Defaults to the document element.
-
-## Usage
-
-*Dropdown/Modal*
-```html
-<div x-data="{ open: false }">
-    <button x-on:click="open = true">Open Dropdown</button>
-    <div x-show="open" x-on:click.outside="open = false">
-        Dropdown Body
-    </div>
-</div>
+InlineJSExtended().then(() => {
+    BootstrapAndAttach();
+});
 ```
 
-*Tabs*
+> `BootstrapAndAttach` takes an optional DOM element to search. Defaults to the document element.
+
+## Usage Examples
+
+### Basic Form Handling with x-form
 ```html
-<div x-data="{ tab: 'foo' }">
-    <button x-class:active="tab === 'foo'" x-on:click="tab = 'foo'">Foo</button>
-    <button x-class:active="tab === 'bar'" x-on:click="tab = 'bar'">Bar</button>
-
-    <div x-show="tab === 'foo'">Tab Foo</div>
-    <div x-show="tab === 'bar'">Tab Bar</div>
-</div>
-```
-
-You can even use it for non-trivial things:
-*Pre-fetching a dropdown's HTML content on hover*
-```html
-<div x-data="{ open: false, html: 'Loading Spinner...' }">
-    <button
-        x-on:mouseenter.once="html = $fetch('/dropdown-partial.html')"
-        x-on:click="open = true"
-    >Show Dropdown</button>
-
-    <div x-show="open" x-html="html" x-on:click.outside="open = false"></div>
-</div>
-```
-
-**Text Interpolation**
-
-In InlineJS reactive text can be interpolated using a pair of `{{` and `}}`. Interpolation is valid for `attribute values` and `text contents`.
-
-**Example**
-
-```html
-<form x-data="{ btnText: 'Save', txtValue: 'Default value' }">
-	<input name="content" value="{{ txtValue }}">
-	<button type="submit">{{ btnText }} Draft</button>
+<form x-data="{ submitted: false }" x-form:submit.prevent="submitted = true">
+    <input name="username" type="text" required>
+    <input name="email" type="email" required>
+    <button type="submit">Submit</button>
+    <p x-show="submitted" x-text="'Form submitted successfully!'"></p>
 </form>
 ```
 
-**Quick Notes**
-> - When using the compiled scripts in a `script` tag no initialization is necessary, as InlineJS will automatically initialize and bind to the document.
-> - If the result of an evaluated expression is a function, most directives will call that function.
-> - When evaluating an expression, `this` refers to the element that the directive is being executed on.
-> - Directives are executed accordingly from `left` to `right` as they appear on an element. There is no precedence.
+### Intersection Observer with x-intersection
+```html
+<div x-data="{ visible: false, ratio: 0 }"
+     x-intersection:visible="visible = $event.detail.visible"
+     x-intersection:ratio="ratio = $event.detail.ratio">
+    <p x-text="visible ? 'Element is visible!' : 'Element is hidden'"></p>
+    <p x-text="'Visibility ratio: ' + Math.round(ratio * 100) + '%'"></p>
+</div>
+```
+
+### Data Formatting with $format
+```html
+<div x-data="{ price: 1234567.89, date: new Date() }">
+    <p x-text="'Price: $' + $format.comma(price)"></p>
+    <p x-text="'Rounded: $' + $format.round(price, 2)"></p>
+    <p x-text="'Date: ' + $format.date(date, 'Y-m-d')"></p>
+</div>
+```
+
+### HTTP Requests with $fetch
+```html
+<div x-data="{ 
+    data: null, 
+    loading: false,
+    async fetchData() {
+        this.loading = true;
+        try {
+            this.data = await $fetch.get('/api/data');
+        } finally {
+            this.loading = false;
+        }
+    }
+}">
+    <button x-on:click="fetchData()" x-bind:disabled="loading">
+        <span x-text="loading ? 'Loading...' : 'Fetch Data'"></span>
+    </button>
+    <div x-show="data" x-text="JSON.stringify(data)"></div>
+</div>
+```
+
+### Promise Waiting with $wait
+```html
+<div x-data="{
+    result: null,
+    async loadData() {
+        const promise = fetch('/api/slow-endpoint').then(r => r.json());
+        this.result = $wait(promise, 'Loading...');
+        this.result = await promise;
+    }
+}">
+    <button x-on:click="loadData()">Load Data</button>
+    <p x-text="result || 'No data loaded'"></p>
+</div>
+```
 
 ## Learn
 
-Available **core** directives:
+**InlineJS Extended** provides additional directives and magic properties on top of the [base InlineJS framework](https://github.com/benbraide/inlinejs). For core InlineJS documentation, please refer to the [main InlineJS repository](https://github.com/benbraide/inlinejs).
+
+### Extended Directives
 
 | Directive | Description |
 | --- | --- |
-| [`x-data`](#x-data) | Declares a new component scope or nested scope with associated data. |
-| [`x-component`](#x-component) | Assigns a key to a component. |
-| [`x-ref`](#x-ref) | Stores a reference to the DOM element in the component using the specified key. |
-| [`x-locals`](#x-locals) | Creates storage local to the element and its offspring. |
-| [`x-post`](#x-post) | Runs an expression after all directives on element --- and offspring directives --- have been executed. |
-| [`x-uninit`](#x-uninit) | Runs an expression when an element is removed from the DOM. |
-| [`x-static`](#x-static) | Runs an expression without keeping track of changes. |
-| [`x-effect`](#x-effect) | Evaluates an expression and keeps track of changes. |
-| [`x-bind`](#x-attr) | Sets the value of an attribute to the result of a JS expression. |
-| [`x-style`](#x-style) | Similar to `x-bind`, but will update the `style` attribute. |
-| [`x-class`](#x-class) | Set/Remove one or more classes based on the truth of the specified expression. |
-| [`x-text`](#x-text) | Works similarly to `x-bind`, but will update the `innerText` of an element. |
-| [`x-html`](#x-html) | Works similarly to `x-bind`, but will update the `innerHTML` of an element. |
-| [`x-on`](#x-on) | Attaches an event listener to the element. Executes JS expression when emitted. |
-| [`x-model`](#x-model) | Adds "two-way data binding" to an element. Keeps input element in sync with component data. |
-| [`x-if`](#x-if) | Remove or inserts an element from/into the DOM depending on expression (true or false). |
-| [`x-else`](#x-else) | Remove or inserts an element from/into the DOM depending on expression (true or false) and a preceding `x-if` or `x-else` directive. |
-| [`x-each`](#x-each) | Create new DOM nodes for each item in an array, associative map, or integer range. |
-| [`x-show`](#x-show) | Toggles `display: none;` on the element depending on expression (true or false). |
-| [`x-cloak`](#x-cloak) | This attribute is removed when InlineJS initializes. Useful for hiding pre-initialized DOM. |
+| [`x-form`](#x-form) | Enhanced form handling with server submission, middleware, and validation. |
+| [`x-intersection`](#x-intersection) | Intersection observer for detecting element visibility and intersection ratios. |
+| [`x-overlay`](#x-overlay) | Overlay management for modals, dropdowns, and other overlay elements. |
+| [`x-state`](#x-state) | Advanced state management with dirty tracking, validation, and persistence. |
+| [`x-resize`](#x-resize) | Element resize observation for responsive behaviors. |
+| [`x-tick`](#x-tick) | Execute expressions on the next tick or at specified intervals. |
+| [`x-attr`](#x-attr) | Enhanced attribute binding with additional features. |
+| [`x-mouse`](#x-mouse) | Advanced mouse event handling with gesture support. |
+| [`x-keyboard`](#x-keyboard) | Keyboard event handling with key combination support. |
 
-Available **core** magic properties:
+### Extended Magic Properties
 
 | Property | Description |
 | --- | --- |
-| [`$component`](#component) |  Retrieve the specified component storage. |
-| [`$locals`](#locals) |  Retrieve the local storage associated with the element. |
-| [`$proxy`](#proxy) |  Retrieve the root proxy. |
-| [`$native`](#native) |  Retrieve the non-proxied data associated with a key. |
-| [`$refs`](#refs) |  Retrieve DOM elements marked with `x-ref` inside the component. |
-| [`$scope`](#scope) |  Retrieve the current scope. |
-| [`$scopes`](#scopes) |  Retrieve all scopes in the current component. |
-| [`$stream`](#stream) | Stream the specified data using a callback.  |
-| [`$wait`](#wait) | Wait the specified data using a callback.  |
-| [`$static`](#static) |  Suppress reactivity for the specified access. |
-| [`$unoptimized`](#unoptimized) |  Suppress optimizations for the specified access. |
-| [`$watch`](#watch) |  Watch a given expression for changes. |
-| [`$pick`](#pick) |  Return one of two values based on a predicate. |
-| [`$rel`](#rel) |  Use one of the `relational` operators. |
-| [`$log`](#log) |  Use one of the `logical` operators. |
-| [`$math`](#math) |  Use one of the `arithmetic` operators. |
-| [`$dom`](#dom) |  Access a DOM property. |
-| [`$class`](#class) |  Use one of the available `class` helpers. |
-| [`$eval`](#eval) |  Evaluate an expression and return the result. |
-| [`$nextTick`](#nexttick) | Execute a given expression **after** `InlineJS` has made its reactive DOM updates. |
+| [`$fetch`](#fetch) | HTTP request utilities with path handlers, mocking, and form data helpers. |
+| [`$format`](#format) | Data formatting for numbers, dates, strings, currency, and more. |
+| [`$wait`](#wait) | Promise waiting with loading states and transition data. |
+| [`$server`](#server) | Server interaction utilities for enhanced client-server communication. |
+| [`$overlay`](#overlay) | Overlay visibility management and positioning helpers. |
 
-### Directives
+### Extended Directives
 
 ---
 
-### `x-data`
+### `x-form`
 
-**Example:** `<div x-data="{ foo: 'bar' }">...</div>`
+**Example:** `<form x-form:submit.prevent="handleSubmit($event)">...</form>`
 
-**Structure:** `<div x-data="[object literal]|[Function]">...</div>`
+**Structure:** `<form x-form:[event].[modifiers]="[expression]">...</form>`
 
-`x-data` declares a new component scope. It tells the framework to initialize a new component with the following data object.
+`x-form` provides enhanced form handling with server submission, middleware support, and automatic validation. It extends standard form behavior with features like:
 
-**Extract Component Logic**
+- Server submission with automatic CSRF handling
+- Middleware pipeline for processing form data
+- File upload and download support
+- Progress tracking and error handling
+- Automatic form validation states
 
-You can extract data (and behavior) into reusable functions:
+**Supported modifiers:**
+- `.prevent` - Prevents default form submission
+- `.persistent` - Preserves form data across page reloads
+- `.upload` - Enables file upload handling
+- `.download` - Handles file downloads
+- `.blob` - Processes blob responses
+- `.silent` - Suppresses success/error notifications
 
+**Example with middleware:**
 ```html
-<div x-data="dropdown">
-    <button x-on:click="open">Open</button>
+<form x-form:submit.prevent.upload="processForm($event)">
+    <input name="file" type="file" required>
+    <button type="submit">Upload</button>
+</form>
+```
 
-    <div x-show="isOpen()" x-on:click.outside="close">
-        Dropdown
+---
+
+### `x-intersection`
+
+**Example:** `<div x-intersection:visible="isVisible = $event.detail.visible">...</div>`
+
+**Structure:** `<div x-intersection:[event].[options]="[expression]">...</div>`
+
+`x-intersection` uses the Intersection Observer API to detect when elements enter or leave the viewport. It provides detailed information about element visibility and intersection ratios.
+
+**Available events:**
+- `visible` - Fires when visibility changes (boolean)
+- `ratio` - Fires when intersection ratio changes (0-1)
+- `stage` - Fires when intersection stage changes ('none', 'partial', 'full')
+
+**Supported options:**
+- `.once` - Only trigger once
+- `.threshold.[number]` - Set intersection threshold (0-1)
+- `.ancestor.[number]` - Use ancestor element as root
+
+**Example:**
+```html
+<div x-data="{ visible: false, ratio: 0 }"
+     x-intersection:visible="visible = $event.detail.visible"
+     x-intersection:ratio="ratio = $event.detail.ratio">
+    <p x-show="visible">Now visible!</p>
+    <p x-text="'Visibility: ' + Math.round(ratio * 100) + '%'"></p>
+</div>
+```
+
+---
+
+### `x-overlay`
+
+**Example:** `<div x-overlay="isOpen">...</div>`
+
+**Structure:** `<div x-overlay:[event]="[expression]">...</div>`
+
+`x-overlay` manages overlay elements like modals, dropdowns, and tooltips. It provides automatic z-index management and integrates with the `$overlay` magic property.
+
+**Available events:**
+- `visible` - Controls overlay visibility
+- `click` - Handles overlay click events
+- `hidden` - Fires when overlay is hidden
+
+**Example:**
+```html
+<div x-data="{ modalOpen: false }">
+    <button x-on:click="modalOpen = true">Open Modal</button>
+    <div x-overlay:visible="modalOpen" 
+         x-show="modalOpen"
+         x-on:click.outside="modalOpen = false">
+        <div class="modal-content">Modal body content</div>
     </div>
 </div>
+```
 
-<script>
-    function dropdown() {
-        return {
-            show: false,
-            open() { this.show = true },
-            close() { this.show = false },
-            isOpen() { return this.show },
+---
+
+### `x-state`
+
+**Example:** `<div x-state="{ dirty: false, invalid: false }">...</div>`
+
+**Structure:** `<div x-state="[state object]">...</div>`
+
+`x-state` provides advanced state management with automatic dirty tracking, validation states, and error handling. It exposes state properties that can be used throughout the component.
+
+**State properties:**
+- `dirty` - Number of dirty (changed) fields
+- `invalid` - Number of invalid fields
+- `changed` - Number of fields that have been modified
+
+**Example:**
+```html
+<form x-data x-state>
+    <input x-model="name" required>
+    <input x-model="email" type="email" required>
+    
+    <p x-show="$state.dirty > 0">You have unsaved changes</p>
+    <p x-show="$state.invalid > 0" class="error">
+        Please fix <span x-text="$state.invalid"></span> validation errors
+    </p>
+    
+    <button type="submit" x-bind:disabled="$state.invalid > 0">
+        Submit
+    </button>
+</form>
+```
+
+---
+
+### `x-resize`
+
+**Example:** `<div x-resize="handleResize($event)">...</div>`
+
+**Structure:** `<div x-resize.[options]="[expression]">...</div>`
+
+`x-resize` observes element size changes using the ResizeObserver API. It provides detailed information about element dimensions and box sizing.
+
+**Available options:**
+- `.content` - Observe content box changes
+- `.box` - Observe border box changes
+
+**Event details include:**
+- `width`, `height` - Element dimensions
+- `x`, `y` - Element position
+- `borderBoxBlock`, `borderBoxInline` - Border box dimensions
+- `contentBoxBlock`, `contentBoxInline` - Content box dimensions
+
+**Example:**
+```html
+<div x-data="{ size: null }"
+     x-resize="size = $event.detail">
+    <p x-show="size" x-text="'Size: ' + size.width + 'x' + size.height"></p>
+</div>
+```
+
+---
+
+### `x-tick`
+
+**Example:** `<div x-tick.1000="counter++">...</div>`
+
+**Structure:** `<div x-tick.[delay].[options]="[expression]">...</div>`
+
+`x-tick` executes expressions on the next tick or at specified intervals. It's useful for animations, polling, and timed updates.
+
+**Available options:**
+- `.delay.[number]` - Set delay in milliseconds (default: 1000)
+- `.duration.[number]` - Set total duration
+- `.steps.[number]` - Set number of steps
+- `.vsync` - Sync with requestAnimationFrame
+- `.stopped` - Start in stopped state
+
+**Example:**
+```html
+<div x-data="{ count: 0, running: true }"
+     x-tick.500="count++"
+     x-show="running">
+    <p x-text="'Count: ' + count"></p>
+    <button x-on:click="$tick.toggle()">Toggle Timer</button>
+</div>
+```
+
+---
+
+### `x-attr`
+
+**Example:** `<div x-attr:data-id="userId">...</div>`
+
+**Structure:** `<div x-attr:[attribute]="[expression]">...</div>`
+
+`x-attr` provides enhanced attribute binding with additional features beyond the core `x-bind` directive.
+
+---
+
+### `x-mouse`
+
+**Example:** `<div x-mouse:move="handleMouseMove($event)">...</div>`
+
+**Structure:** `<div x-mouse:[event].[options]="[expression]">...</div>`
+
+`x-mouse` provides advanced mouse event handling with gesture support and enhanced event information.
+
+---
+
+### `x-keyboard`
+
+**Example:** `<div x-keyboard:keydown.ctrl.s="save()">...</div>`
+
+**Structure:** `<div x-keyboard:[event].[modifiers]="[expression]">...</div>`
+
+`x-keyboard` provides enhanced keyboard event handling with support for complex key combinations and shortcuts.
+
+---
+
+## Extended Magic Properties
+
+---
+
+### `$fetch`
+
+**Example:** `$fetch.get('/api/data')`
+
+`$fetch` provides enhanced HTTP request capabilities with path handlers, mocking, and form data utilities.
+
+**Available methods:**
+- `get(url, options)` - Perform GET request
+- `addPathHandler(path, handler)` - Add custom path handler
+- `removePathHandler(handler)` - Remove path handler
+- `mockResponse(params)` - Mock HTTP responses for testing
+- `formData(data)` - Create FormData from object
+- `install()` - Install as global fetch concept
+- `uninstall()` - Remove global fetch concept
+
+**Example:**
+```html
+<div x-data="{
+    data: null,
+    loading: false,
+    async fetchData() {
+        this.loading = true;
+        try {
+            this.data = await $fetch.get('/api/users');
+        } finally {
+            this.loading = false;
         }
     }
-</script>
+}">
+    <button x-on:click="fetchData()">Fetch Users</button>
+    <div x-show="loading">Loading...</div>
+    <div x-show="data" x-text="JSON.stringify(data)"></div>
+</div>
 ```
 
-You can also mix-in multiple data objects using object destructuring:
-
+**FormData helper:**
 ```html
-<div x-data="{...dropdown(), ...tabs()}">
+<div x-data="{
+    submitForm() {
+        const formData = $fetch.formData({
+            name: 'John Doe',
+            email: 'john@example.com'
+        });
+        return $fetch.get('/submit', { method: 'POST', body: formData });
+    }
+}">
+    <button x-on:click="submitForm()">Submit</button>
+</div>
 ```
-**Component config**
 
-You can specify a `$config` property on the object used to initialize a component. This enables you to specify per-component configurations.
+---
 
+### `$format`
+
+**Example:** `$format.comma(1234567)`
+
+`$format` provides comprehensive data formatting utilities for numbers, dates, strings, and more.
+
+**Number formatting:**
+- `comma(number)` - Add thousand separators (1,234,567)
+- `round(number, decimals)` - Round to specified decimal places
+- `currency(number, currencyCode, locale)` - Format as currency
+- `prefix(data, prefix)` - Add prefix to data
+- `suffix(data, suffix)` - Add suffix to data
+- `affix(data, prefix, suffix)` - Add both prefix and suffix
+
+**String formatting:**
+- `upperCase(string)` - Convert to uppercase
+- `lowerCase(string)` - Convert to lowercase
+- `titleCase(string)` - Convert to title case
+- `truncate(string, limit, trail)` - Truncate with ellipsis
+- `plural(count, singular, plural)` - Handle pluralization
+
+**Date formatting:**
+- `date(date, format)` - Format dates with patterns
+- `relativeTime(date)` - Relative time formatting
+
+**Array/Object formatting:**
+- `join(array, separator)` - Join array elements
+- `keys(object)` - Get object keys
+- `values(object)` - Get object values
+- `slice(data, keys)` - Extract specific keys/indices
+
+**Example:**
 ```html
-<div x-data="{ $config: { name: 'my-component', reactiveState: 'optimized' } }"></div>
+<div x-data="{
+    price: 1234567.89,
+    name: 'john doe',
+    date: new Date(),
+    items: ['apple', 'banana', 'cherry']
+}">
+    <p x-text="'Price: ' + $format.currency(price, 'USD')"></p>
+    <p x-text="'Name: ' + $format.titleCase(name)"></p>
+    <p x-text="'Date: ' + $format.date(date, 'Y-m-d')"></p>
+    <p x-text="'Items: ' + $format.join(items, ', ')"></p>
+</div>
 ```
-> Available configurations are:
-> - `reativeState` specifies the reactivity state of a component. One of `default`, `optimized`, or `unoptimized`.
-> - `name` specifies the name of the component.
-> - `locals` specifies data that should be treated as local to the root element and its offspring.
-> - `init` specifies a function to execute after the component has been initialized.
-> - `uninit` specifies a function to execute when the root element is removed from the DOM.
-> - `post` specifies a function to execute after all directives have been processed, including offspring's directives.
 
-**Nested scope**
+---
 
-You can create nested scopes by using the `x-data` directive on an offspring of a component:
+### `$wait`
 
+**Example:** `$wait(promise, 'Loading...')`
+
+`$wait` manages promise states and provides loading transitions while waiting for async operations to complete.
+
+**Parameters:**
+- `data` - Promise or any data to wait for
+- `transitionData` - Data to show while waiting (loading message, spinner, etc.)
+
+**Returns:**
+- While waiting: returns `transitionData`
+- After resolution: returns the resolved value
+
+**Example:**
 ```html
-<div x-data="{ level: 'top' }">
-    <div x-data="{ level: 'nested' }">
-	    <p x-text="$scope.level"></p>
-	    <p x-text="$parent.level"></p>
+<div x-data="{
+    result: null,
+    async loadData() {
+        const promise = new Promise(resolve => {
+            setTimeout(() => resolve('Data loaded!'), 2000);
+        });
+        
+        // Show 'Loading...' while waiting
+        this.result = $wait(promise, 'Loading...');
+        
+        // Update with actual result when promise resolves
+        try {
+            this.result = await promise;
+        } catch (error) {
+            this.result = 'Error loading data';
+        }
+    }
+}">
+    <button x-on:click="loadData()">Load Data</button>
+    <p x-text="result || 'No data'"></p>
+</div>
+```
+
+**Advanced example with fetch:**
+```html
+<div x-data="{
+    users: null,
+    async fetchUsers() {
+        const promise = fetch('/api/users').then(r => r.json());
+        this.users = $wait(promise, [{ name: 'Loading...', loading: true }]);
+        this.users = await promise;
+    }
+}">
+    <button x-on:click="fetchUsers()">Fetch Users</button>
+    <template x-for="user in users || []">
+        <div x-text="user.name" x-class:loading="user.loading"></div>
+    </template>
+</div>
+```
+
+---
+
+### `$server`
+
+**Example:** `$server.upload('/upload', formData)`
+
+`$server` provides server interaction utilities for file uploads, downloads, and duplex communication.
+
+**Available methods:**
+- `upload(url, data, method)` - Upload files to server
+- `download(url, data, method)` - Download files from server  
+- `duplex(url, data, method)` - Bidirectional server communication
+
+**Upload example:**
+```html
+<form x-data="{
+    file: null,
+    uploading: false,
+    async uploadFile() {
+        if (!this.file) return;
+        
+        this.uploading = true;
+        try {
+            const formData = new FormData();
+            formData.append('file', this.file);
+            
+            const result = await $server.upload('/api/upload', formData);
+            console.log('Upload successful:', result);
+        } finally {
+            this.uploading = false;
+        }
+    }
+}">
+    <input type="file" x-on:change="file = $event.target.files[0]">
+    <button x-on:click="uploadFile()" x-bind:disabled="!file || uploading">
+        <span x-text="uploading ? 'Uploading...' : 'Upload'"></span>
+    </button>
+</form>
+```
+
+**Download example:**
+```html
+<div x-data="{
+    async downloadReport() {
+        try {
+            const blob = await $server.download('/api/reports/monthly', {
+                month: new Date().getMonth() + 1,
+                year: new Date().getFullYear()
+            });
+            
+            // Create download link
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'monthly-report.pdf';
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Download failed:', error);
+        }
+    }
+}">
+    <button x-on:click="downloadReport()">Download Report</button>
+</div>
+```
+
+---
+
+### `$overlay`
+
+**Example:** `$overlay.show()`
+
+`$overlay` manages overlay visibility and provides z-index management for modals, dropdowns, and other overlay elements.
+
+**Available methods:**
+- `show()` - Show overlay
+- `hide()` - Hide overlay
+- `toggle()` - Toggle overlay visibility
+- `isVisible()` - Check if overlay is visible
+- `offsetShowCount(delta)` - Adjust show count
+
+**Example:**
+```html
+<div x-data="{ modalOpen: false }">
+    <button x-on:click="modalOpen = true; $overlay.show()">
+        Open Modal
+    </button>
+    
+    <div x-show="modalOpen" 
+         x-overlay="modalOpen"
+         x-on:click.outside="modalOpen = false; $overlay.hide()"
+         style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+        <h2>Modal Title</h2>
+        <p>Modal content goes here...</p>
+        <button x-on:click="modalOpen = false; $overlay.hide()">Close</button>
     </div>
 </div>
 ```
 
-> `x-data` exposes the following local properties, available to the component root and its offspring:
-> - `$name` retrieves the name of the current scope. If not accessed from a nested scope, then it returns the name of the current component.
-> - `$componentName` retrieves the name of the current component.
-> - `$parent` retrieves the data associated with the parent of the current scope. Returns `undefined` if not accessed from a nested scope.
-
----
-
-### `x-component`
-**Example:** `<div x-data x-component="my-component"></div>`
-
-**Structure:** `<div x-data="..." x-component="[identifier]"></div>`
-
-`x-component` assigns a name to a component.
-
-**`evaluate` argument**
-
-**Example:** `<div x-data x-component:evaluate="componentName"></div>`
-
-Use the `evaluate` argument to instruct the directive to evaluate the specified expression.
-
----
-
-### `x-ref`
-**Example:** `<div x-data x-ref="myDiv"></div>`
-
-**Structure:** `<div x-data="..." x-ref="[variable]"></div>`
-
-`x-ref` stores a reference to the DOM element in the component using the specified key. The key is added to the `$refs` global magic property.
-
----
-
-### `x-locals`
-
-**Example:** `<div x-data x-locals="{ foo: 'bar' }">...</div>`
-
-**Structure:** `<div x-locals="[object literal]|[Function]">...</div>`
-
-`x-data` declares a new component scope. It tells the framework to initialize a new component with the following data object.
-
----
-
-### `x-post`
-**Example:** `<div x-data x-post="console.log('Every offspring initialized')"></div>`
-
-**Structure:** `<div x-data="..." x-post="[expression]"></div>`
-
-`x-post` runs an expression after all directives on element, and offspring directives, have been executed.
-
----
-
-### `x-uninit`
-**Example:** `<div x-data="{ foo: 'bar' }" x-uninit="console.log('Element removed')"></div>`
-
-**Structure:** `<div x-data="..." x-uninit="[expression]"></div>`
-
-`x-uninit` runs an expression when an element is removed from the DOM.
-
----
-
-### `x-static`
-**Example:** `<div x-data="{ foo: 'bar' }" x-static="foo = 'baz'"></div>`
-
-**Structure:** `<div x-data="..." x-static="[expression]"></div>`
-
-`x-static` runs an expression without keeping track of changes.
-
----
-
-### `x-effect`
-**Example:** `<div x-data="{ value: 9 }" x-effect="doubled = value * 2"></div>`
-
-**Structure:** `<div x-data="..." x-effect="[expression]"></div>`
-
-`x-effect` runs an expression and keeps track of changes. When changes occur elsewhere, the expression is re-run.
-
----
-
-### `x-bind`
-
-> Note: You are free to use the shorter ":" syntax: `:type="..."`
-
-**Example:** `<input x-bind="inputType">`
-
-**Structure:** `<input x-bind:[attribute]="[expression]">`
-
-`x-bind` sets the value of an attribute to the result of a JavaScript expression. The expression has access to all the keys of the component's data object, and will update every-time its data is updated.
-
-> Note: attribute bindings ONLY update when their dependencies update. The framework is smart enough to observe data changes and detect which bindings care about them.
-
-**`x-bind` for boolean attributes**
-
-`x-bind` supports boolean attributes in the same way as value attributes, using a variable as the condition or any JavaScript expression that resolves to `true` or `false`.
-
-For example:
+**Advanced overlay management:**
 ```html
-<!-- Given: -->
-<button x-bind:disabled="myVar">Click me</button>
-
-<!-- When myVar == true: -->
-<button disabled="disabled">Click me</button>
-
-<!-- When myVar == false: -->
-<button>Click me</button>
+<div x-data="{
+    dropdownOpen: false,
+    modalOpen: false,
+    
+    openDropdown() {
+        this.dropdownOpen = true;
+        $overlay.show(); // Increment overlay count
+    },
+    
+    closeDropdown() {
+        this.dropdownOpen = false;
+        $overlay.hide(); // Decrement overlay count
+    },
+    
+    openModal() {
+        this.modalOpen = true;
+        $overlay.show(); // Stack overlays
+    },
+    
+    closeModal() {
+        this.modalOpen = false;
+        $overlay.hide();
+    }
+}">
+    <!-- Dropdown -->
+    <div style="position: relative;">
+        <button x-on:click="openDropdown()">Open Dropdown</button>
+        <div x-show="dropdownOpen" 
+             x-overlay="dropdownOpen"
+             x-on:click.outside="closeDropdown()">
+            Dropdown content
+            <button x-on:click="openModal()">Open Modal</button>
+        </div>
+    </div>
+    
+    <!-- Modal -->
+    <div x-show="modalOpen" x-overlay="modalOpen">
+        Modal content
+        <button x-on:click="closeModal()">Close Modal</button>
+    </div>
+</div>
 ```
 
-This will add or remove the `disabled` attribute when `myVar` is true or false respectively.
+## Contributing
 
-Boolean attributes are supported as per the [HTML specification](https://html.spec.whatwg.org/multipage/indices.html#attributes-3:boolean-attribute), for example `disabled`, `readonly`, `required`, `checked`, `hidden`, `selected`, `open`, etc.
+Contributions are welcome! Please read the [contributing guidelines](CONTRIBUTING.md) before submitting a pull request.
 
-> Note: If you need a false state to show for your attribute, such as `aria-*`, chain `.toString()` to the value while binding to the attribute. For example: `:aria-expanded="isOpen.toString()"` would persist whether  `isOpen` was `true` or `false`.
+## License
 
----
-
-### `x-style`
-**Example:**
-```
-<span x-style:display="'block'"></span>
-<span x-style="{ display: 'block', width: '1rem' }"></span>
-```
-
-**Structure:**
-```
-<span x-style:[property]="[expression]"></span>
-<span x-style="{ [property]: [expression], ... }"></span>
-```
-
-`x-style` sets the value of a style property on an element to the evaluated expression.
-
----
-
-### `x-class`
-
-> Note: You are free to use the shorter "." syntax: `.block="..."`
-
-**Example:**
-```
-<span x-class:block="shouldBeBlock"></span>
-<span x-class="{ block: true, inline: false }"></span>
-```
-
-**Structure:**
-```
-<span x-class:[name]="[boolean expression]"></span>
-<span x-class="{ [name]: [boolean expression], ... }"></span>
-```
-
-`x-class` sets or removes a class name on an element based on the truthiness of the evaluated expression.
-
----
-
-### `x-text`
-**Example:** `<span x-text="foo"></span>`
-
-**Structure:** `<span x-text="[expression]"`
-
-`x-text` works similarly to `x-bind`, except instead of updating the value of an attribute, it will update the `innerText` of an element.
-
-> A promise, or promise-like object, may be returned and `x-text` will wait for it to be resolved and the resulting value used.
-
----
-
-### `x-html`
-**Example:** `<span x-html="foo"></span>`
-
-**Structure:** `<span x-html="[expression]"`
-
-`x-html` works similarly to `x-bind`, except instead of updating the value of an attribute, it will update the `innerHTML` of an element.
-
-> A promise, or promise-like object, may be returned and `x-html` will wait for it to be resolved and the resulting value used.
-
-> :warning: **Only use on trusted content and never on user-provided content.** :warning:
->
-> Dynamically rendering HTML from third parties can easily lead to [XSS](https://developer.mozilla.org/en-US/docs/Glossary/Cross-site_scripting) vulnerabilities.
-
----
-
-### `x-on`
-
-> Note: You are free to use the shorter "@" syntax: `@click="..."`
-
-**Example:** `<button x-on:click="foo = 'bar'"></button>`
-
-**Structure:** `<button x-on:[event]="[expression]"></button>`
-
-`x-on` attaches an event listener to the element it's declared on. When that event is emitted, the JavaScript expression set as its value is executed.
-
-If any data is modified in the expression, other element attributes "bound" to this data, will be updated.
-
-> Note: You can also specify a JavaScript function name
-
-> - This directive exposes a `$event` context variable, representing the generated native event, accessible during the evaluation of the specified expression.
-> - When a function is specified, it is passed the generated event as the first argument.
-
-**Example:** `<button x-on:click="myFunction"></button>`
-
-This is equivalent to: `<button x-on:click="myFunction($event)"></button>`
-
-**`keydown` modifiers**
-
-**Example:** `<input type="text" x-on:keydown.esc="open = false">`
-
-You can specify specific keys to listen for using `keydown` modifiers appended to the `x-on:keydown` directive. Note that the modifiers are kebab-cased versions of `Event.key` values.
-
-Examples: `enter`, `escape`, `arrow-up`, `arrow-down`
-
-> Note: You can also listen for system-modifier key combinations like: `x-on:keydown.ctrl.enter="foo"`
-> Multiple keys can be combined for alternatives e.g. `x-on:keydown.enter.space`
-> Character ranges can be specified e.g. `x-on:keydown.a-z` `x-on:keydown.0-9`
-> Character groups can be specified e.g. `x-on:keydown.alpha` `x-on:keydown.digits`
-
-**`.outside` modifier**
-
-**Example:** `<div x-on:click.outside="showModal = false"></div>`
-
-When the `.outside` modifier is present, the event handler will only be executed when the event originates from a source other than itself, or its offspring.
-
-This is useful for hiding dropdowns and modals when a user clicks away from them.
-
-**`.prevent` modifier**
-**Example:** `<input type="checkbox" x-on:click.prevent>`
-
-Adding `.prevent` to an event listener will call `preventDefault` on the triggered event. In the above example, this means the checkbox wouldn't actually get checked when a user clicks on it.
-
-**`.stop` modifier**
-**Example:** `<div x-on:click="foo = 'bar'"><button x-on:click.stop></button></div>`
-
-Adding `.stop` to an event listener will call `stopPropagation` on the triggered event. In the above example, this means the "click" event won't bubble from the button to the outer `<div>`. Or in other words, when a user clicks the button, `foo` won't be set to `'bar'`.
-
-**`.self` modifier**
-**Example:** `<div x-on:click.self="foo = 'bar'"><button></button></div>`
-
-Adding `.self` to an event listener will only trigger the handler if the `$event.target` is the element itself. In the above example, this means the "click" event that bubbles from the button to the outer `<div>` will **not** run the handler.
-
-**`.window` modifier**
-**Example:** `<div x-on:resize.window="isOpen = window.outerWidth > 768 ? false : open"></div>`
-
-Adding `.window` to an event listener will install the listener on the global window object instead of the DOM node on which it is declared. This is useful for when you want to modify component state when something changes with the window, like the resize event. In this example, when the window grows larger than 768 pixels wide, we will close the modal/dropdown, otherwise maintain the same state.
-
->Note: You can also use the `.document` modifier to attach listeners to `document` instead of `window`
-
-**`.once` modifier**
-**Example:** `<button x-on:mouseenter.once="fetchSomething()"></button>`
-
-Adding the `.once` modifier to an event listener will ensure that the listener will only be handled once. This is useful for things you only want to do once, like fetching HTML partials and such.
-
-**`.passive` modifier**
-**Example:** `<button x-on:mousedown.passive="interactive = true"></button>`
-
-Adding the `.passive` modifier to an event listener will make the listener a passive one, which means `preventDefault()` will not work on any events being processed, this can help, for example with scroll performance on touch devices.
-
-**`.debounce` modifier**
-**Example:** `<input x-on:input.debounce="fetchSomething()">`
-
-The `.debounce` modifier allows you to "debounce" an event handler. In other words, the event handler will NOT run until a certain amount of time has elapsed since the last event that fired. When the handler is ready to be called, the last handler call will execute.
-
-The default debounce "wait" time is 250 milliseconds.
-
-If you wish to customize this, you can specify a custom wait time like so:
-
-```
-<input x-on:input.debounce.750="fetchSomething()">
-<input x-on:input.debounce.750ms="fetchSomething()">
-```
-
----
-
-### `x-model`
-**Example:** `<input type="text" x-model="foo">`
-
-**Structure:** `<input type="text" x-model="[data item]">`
-
-`x-model` adds "two-way data binding" to an element. In other words, the value of the input element will be kept in sync with the value of the data item of the component.
-
-> Note: `x-model` is smart enough to detect changes on text inputs, checkboxes, radio buttons, textareas, selects, and multiple selects.
-
-**`.number` modifier**
-**Example:** `<input x-model.number="age">`
-
-The `number` modifier will convert the input's value to a number. If the value cannot be parsed as a valid number, the original value is returned.
-
-**`.debounce` modifier**
-**Example:** `<input x-model.debounce="search">`
-
-The `debounce` modifier allows you to add a "debounce" to a value update. In other words, the event handler will NOT run until a certain amount of time has elapsed since the last event that fired. When the handler is ready to be called, the last handler call will execute.
-
-The default debounce "wait" time is 250 milliseconds.
-
-If you wish to customize this, you can specify a custom wait time like so:
-
-```
-<input x-model.debounce.750="search">
-<input x-model.debounce.750ms="search">
-```
-
----
-
-### `x-if`
-**Example:** `<template x-if="true"><div>...</div></template>`
-
-**Structure:** `<template x-if="[expression]">...</template>`
-
-For cases where `x-show` isn't sufficient (`x-show` sets an element to `display: none` if it's false), `x-if` can be used to  actually remove an element completely from the DOM.
-
->**Note**:
-> - A `template` element is required for this directive.
-> - The template element must have a single direct child.
-
----
-
-### `x-else`
-**Example:**
-```html
-<template x-if="count == 0"><div>...</div></template>
-<template x-else="count == 1"><div>...</div></template>
-<template x-else><div>...</div></template>
-```
-
-**Structure:** `<template x-else="[optional expression]">...</template>`
-
-The `x-else` directive enables an `if-then-else` paradigm. A `x-if` or `x-else` directive is required to precede it.
-
->**Note**:
-> - A `template` element is required for this directive.
-> - The template element must have a single direct child.
-
----
-
-### `x-each`
-**Example:**
-```html
-<template x-each="items"><div>...<div></template>
-<template x-each="items as item"><div>...<div></template>
-<template x-each="items as key => item"><div>...<div></template>
-```
-**Structure:**
-```html
-<template x-each="[expression]">...</template>
-<template x-each="[expression] as [identifier]">...</template>
-<template x-each="[expression] as [key] => [identifier]">...</template>
-```
-
-`x-each` is available for cases when you want to create new DOM nodes for each item in an array.
-
->**Note**:
-> - A `template` element is required for this directive.
-> - The template element must have a single direct child.
-
-It exposes a `$each` local property with the following fields:
-
- - `count:` Retrieves the total count of the loop
- - `index:` Retrieves the current index
- - `value:` Retrieves the current value
- - `collection:` Retrieves the collection that is being iterated
- - `parent:` Retrieves the parent loop property, if any
-
-It can iterate over arrays, key-value associative objects, and integer ranges.
-
-A name can be specified for `$each.value` using the following syntax:
-
-```html
-<template x-each="items as item">
-	<p>{{ item }}</p>
-</template>
-```
-A name can be specified for `$each.index` using the following syntax:
-
-```html
-<template x-each="items as index => item">
-	<p>{{ index }}{{ item }}</p>
-</template>
-```
-
-#### Nesting `x-each`s
-You can nest `x-each` loops. For example:
-
-```html
-<template x-each="items as item">
-    <template x-each="item.subItems as subItem">
-	    <div x-text="subItem"></div>
-    </template>
-</template>
-```
-
-#### Iterating over an integer range
-
-Iteration over integers are supported. Example:
-
-```html
-<template x-each="10 as i"><div>...</div></template>
-```
-
-> By default, the iteration range is from `0` to `value - 1`.
-
-Negative values can be specified. Example:
-
-```html
-<template x-each="-10 as i"><div>...</div></template>
-```
-
-> By default, the iteration range is from to `value + 1` to `0`.
-
----
-
-### `x-show`
-**Example:** `<div x-show="open"></div>`
-
-**Structure:** `<div x-show="[expression]"></div>`
-
-`x-show` toggles the `display: none;` style on the element depending if the expression resolves to `true` or `false`.
-
----
-
-### `x-cloak`
-**Example:** `<div x-data="{}" x-cloak></div>`
-
-`x-cloak` attributes are removed from elements when InlineJS initializes. This is useful for hiding pre-initialized DOM. It's typical to add the following global style for this to work:
-
-```html
-<style>
-    [x-cloak] { display: none; }
-</style>
-```
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -102,3 +102,6 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Documentation validation file (for testing only)
+docs-validation.html

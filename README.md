@@ -46,38 +46,38 @@ InlineJSExtended().then(() => {
 
 ## Usage Examples
 
-### Basic Form Handling with x-form
+### Basic Form Handling with hx-form
 ```html
-<form x-data="{ submitted: false }" x-form:submit.prevent="submitted = true">
+<form hx-data="{ submitted: false }" hx-form:submit.prevent="submitted = true">
     <input name="username" type="text" required>
     <input name="email" type="email" required>
     <button type="submit">Submit</button>
-    <p x-show="submitted" x-text="'Form submitted successfully!'"></p>
+    <p hx-show="submitted" hx-text="'Form submitted successfully!'"></p>
 </form>
 ```
 
-### Intersection Observer with x-intersection
+### Intersection Observer with hx-intersection
 ```html
-<div x-data="{ visible: false, ratio: 0 }"
-     x-intersection:visible="visible = $event.detail.visible"
-     x-intersection:ratio="ratio = $event.detail.ratio">
-    <p x-text="visible ? 'Element is visible!' : 'Element is hidden'"></p>
-    <p x-text="'Visibility ratio: ' + Math.round(ratio * 100) + '%'"></p>
+<div hx-data="{ visible: false, ratio: 0 }"
+     hx-intersection:visible="visible = $event.detail.visible"
+     hx-intersection:ratio="ratio = $event.detail.ratio">
+    <p hx-text="visible ? 'Element is visible!' : 'Element is hidden'"></p>
+    <p hx-text="'Visibility ratio: ' + Math.round(ratio * 100) + '%'"></p>
 </div>
 ```
 
 ### Data Formatting with $format
 ```html
-<div x-data="{ price: 1234567.89, date: new Date() }">
-    <p x-text="'Price: $' + $format.comma(price)"></p>
-    <p x-text="'Rounded: $' + $format.round(price, 2)"></p>
-    <p x-text="'Date: ' + $format.date(date, 'Y-m-d')"></p>
+<div hx-data="{ price: 1234567.89, date: new Date() }">
+    <p hx-text="'Price: $' + $format.comma(price)"></p>
+    <p hx-text="'Rounded: $' + $format.round(price, 2)"></p>
+    <p hx-text="'Date: ' + $format.date(date, 'Y-m-d')"></p>
 </div>
 ```
 
 ### HTTP Requests with $fetch
 ```html
-<div x-data="{ 
+<div hx-data="{ 
     data: null, 
     loading: false,
     async fetchData() {
@@ -89,16 +89,16 @@ InlineJSExtended().then(() => {
         }
     }
 }">
-    <button x-on:click="fetchData()" x-bind:disabled="loading">
-        <span x-text="loading ? 'Loading...' : 'Fetch Data'"></span>
+    <button hx-on:click="fetchData()" hx-bind:disabled="loading">
+        <span hx-text="loading ? 'Loading...' : 'Fetch Data'"></span>
     </button>
-    <div x-show="data" x-text="JSON.stringify(data)"></div>
+    <div hx-show="data" hx-text="JSON.stringify(data)"></div>
 </div>
 ```
 
 ### Promise Waiting with $wait
 ```html
-<div x-data="{
+<div hx-data="{
     result: null,
     async loadData() {
         const promise = fetch('/api/slow-endpoint').then(r => r.json());
@@ -106,8 +106,8 @@ InlineJSExtended().then(() => {
         this.result = await promise;
     }
 }">
-    <button x-on:click="loadData()">Load Data</button>
-    <p x-text="result || 'No data loaded'"></p>
+    <button hx-on:click="loadData()">Load Data</button>
+    <p hx-text="result || 'No data loaded'"></p>
 </div>
 ```
 
@@ -119,15 +119,15 @@ InlineJSExtended().then(() => {
 
 | Directive | Description |
 | --- | --- |
-| [`x-form`](#x-form) | Enhanced form handling with server submission, middleware, and validation. |
-| [`x-intersection`](#x-intersection) | Intersection observer for detecting element visibility and intersection ratios. |
-| [`x-overlay`](#x-overlay) | Overlay management for modals, dropdowns, and other overlay elements. |
-| [`x-state`](#x-state) | Advanced state management with dirty tracking, validation, and persistence. |
-| [`x-resize`](#x-resize) | Element resize observation for responsive behaviors. |
-| [`x-tick`](#x-tick) | Execute expressions on the next tick or at specified intervals. |
-| [`x-attr`](#x-attr) | Enhanced attribute binding with additional features. |
-| [`x-mouse`](#x-mouse) | Advanced mouse event handling with gesture support. |
-| [`x-keyboard`](#x-keyboard) | Keyboard event handling with key combination support. |
+| [`hx-form`](#hx-form) | Enhanced form handling with server submission, middleware, and validation. |
+| [`hx-intersection`](#hx-intersection) | Intersection observer for detecting element visibility and intersection ratios. |
+| [`hx-overlay`](#hx-overlay) | Overlay management for modals, dropdowns, and other overlay elements. |
+| [`hx-state`](#hx-state) | Advanced state management with dirty tracking, validation, and persistence. |
+| [`hx-resize`](#hx-resize) | Element resize observation for responsive behaviors. |
+| [`hx-tick`](#hx-tick) | Execute expressions on the next tick or at specified intervals. |
+| [`hx-attr`](#hx-attr) | Enhanced attribute binding with additional features. |
+| [`hx-mouse`](#hx-mouse) | Advanced mouse event handling with gesture support. |
+| [`hx-keyboard`](#hx-keyboard) | Keyboard event handling with key combination support. |
 
 ### Extended Magic Properties
 
@@ -143,13 +143,13 @@ InlineJSExtended().then(() => {
 
 ---
 
-### `x-form`
+### `hx-form`
 
-**Example:** `<form x-form:submit.prevent="handleSubmit($event)">...</form>`
+**Example:** `<form hx-form:submit.prevent="handleSubmit($event)">...</form>`
 
-**Structure:** `<form x-form:[event].[modifiers]="[expression]">...</form>`
+**Structure:** `<form hx-form:[event].[modifiers]="[expression]">...</form>`
 
-`x-form` provides enhanced form handling with server submission, middleware support, and automatic validation. It extends standard form behavior with features like:
+`hx-form` provides enhanced form handling with server submission, middleware support, and automatic validation. It extends standard form behavior with features like:
 
 - Server submission with automatic CSRF handling
 - Middleware pipeline for processing form data
@@ -167,7 +167,7 @@ InlineJSExtended().then(() => {
 
 **Example with middleware:**
 ```html
-<form x-form:submit.prevent.upload="processForm($event)">
+<form hx-form:submit.prevent.upload="processForm($event)">
     <input name="file" type="file" required>
     <button type="submit">Upload</button>
 </form>
@@ -175,13 +175,13 @@ InlineJSExtended().then(() => {
 
 ---
 
-### `x-intersection`
+### `hx-intersection`
 
-**Example:** `<div x-intersection:visible="isVisible = $event.detail.visible">...</div>`
+**Example:** `<div hx-intersection:visible="isVisible = $event.detail.visible">...</div>`
 
-**Structure:** `<div x-intersection:[event].[options]="[expression]">...</div>`
+**Structure:** `<div hx-intersection:[event].[options]="[expression]">...</div>`
 
-`x-intersection` uses the Intersection Observer API to detect when elements enter or leave the viewport. It provides detailed information about element visibility and intersection ratios.
+`hx-intersection` uses the Intersection Observer API to detect when elements enter or leave the viewport. It provides detailed information about element visibility and intersection ratios.
 
 **Available events:**
 - `visible` - Fires when visibility changes (boolean)
@@ -195,23 +195,23 @@ InlineJSExtended().then(() => {
 
 **Example:**
 ```html
-<div x-data="{ visible: false, ratio: 0 }"
-     x-intersection:visible="visible = $event.detail.visible"
-     x-intersection:ratio="ratio = $event.detail.ratio">
-    <p x-show="visible">Now visible!</p>
-    <p x-text="'Visibility: ' + Math.round(ratio * 100) + '%'"></p>
+<div hx-data="{ visible: false, ratio: 0 }"
+     hx-intersection:visible="visible = $event.detail.visible"
+     hx-intersection:ratio="ratio = $event.detail.ratio">
+    <p hx-show="visible">Now visible!</p>
+    <p hx-text="'Visibility: ' + Math.round(ratio * 100) + '%'"></p>
 </div>
 ```
 
 ---
 
-### `x-overlay`
+### `hx-overlay`
 
-**Example:** `<div x-overlay="isOpen">...</div>`
+**Example:** `<div hx-overlay="isOpen">...</div>`
 
-**Structure:** `<div x-overlay:[event]="[expression]">...</div>`
+**Structure:** `<div hx-overlay:[event]="[expression]">...</div>`
 
-`x-overlay` manages overlay elements like modals, dropdowns, and tooltips. It provides automatic z-index management and integrates with the `$overlay` magic property.
+`hx-overlay` manages overlay elements like modals, dropdowns, and tooltips. It provides automatic z-index management and integrates with the `$overlay` magic property.
 
 **Available events:**
 - `visible` - Controls overlay visibility
@@ -220,11 +220,11 @@ InlineJSExtended().then(() => {
 
 **Example:**
 ```html
-<div x-data="{ modalOpen: false }">
-    <button x-on:click="modalOpen = true">Open Modal</button>
-    <div x-overlay:visible="modalOpen" 
-         x-show="modalOpen"
-         x-on:click.outside="modalOpen = false">
+<div hx-data="{ modalOpen: false }">
+    <button hx-on:click="modalOpen = true">Open Modal</button>
+    <div hx-overlay:visible="modalOpen" 
+         hx-show="modalOpen"
+         hx-on:click.outside="modalOpen = false">
         <div class="modal-content">Modal body content</div>
     </div>
 </div>
@@ -232,13 +232,13 @@ InlineJSExtended().then(() => {
 
 ---
 
-### `x-state`
+### `hx-state`
 
-**Example:** `<div x-state="{ dirty: false, invalid: false }">...</div>`
+**Example:** `<div hx-state="{ dirty: false, invalid: false }">...</div>`
 
-**Structure:** `<div x-state="[state object]">...</div>`
+**Structure:** `<div hx-state="[state object]">...</div>`
 
-`x-state` provides advanced state management with automatic dirty tracking, validation states, and error handling. It exposes state properties that can be used throughout the component.
+`hx-state` provides advanced state management with automatic dirty tracking, validation states, and error handling. It exposes state properties that can be used throughout the component.
 
 **State properties:**
 - `dirty` - Number of dirty (changed) fields
@@ -247,16 +247,16 @@ InlineJSExtended().then(() => {
 
 **Example:**
 ```html
-<form x-data x-state>
-    <input x-model="name" required>
-    <input x-model="email" type="email" required>
+<form hx-data hx-state>
+    <input hx-model="name" required>
+    <input hx-model="email" type="email" required>
     
-    <p x-show="$state.dirty > 0">You have unsaved changes</p>
-    <p x-show="$state.invalid > 0" class="error">
-        Please fix <span x-text="$state.invalid"></span> validation errors
+    <p hx-show="$state.dirty > 0">You have unsaved changes</p>
+    <p hx-show="$state.invalid > 0" class="error">
+        Please fix <span hx-text="$state.invalid"></span> validation errors
     </p>
     
-    <button type="submit" x-bind:disabled="$state.invalid > 0">
+    <button type="submit" hx-bind:disabled="$state.invalid > 0">
         Submit
     </button>
 </form>
@@ -264,13 +264,13 @@ InlineJSExtended().then(() => {
 
 ---
 
-### `x-resize`
+### `hx-resize`
 
-**Example:** `<div x-resize="handleResize($event)">...</div>`
+**Example:** `<div hx-resize="handleResize($event)">...</div>`
 
-**Structure:** `<div x-resize.[options]="[expression]">...</div>`
+**Structure:** `<div hx-resize.[options]="[expression]">...</div>`
 
-`x-resize` observes element size changes using the ResizeObserver API. It provides detailed information about element dimensions and box sizing.
+`hx-resize` observes element size changes using the ResizeObserver API. It provides detailed information about element dimensions and box sizing.
 
 **Available options:**
 - `.content` - Observe content box changes
@@ -284,21 +284,21 @@ InlineJSExtended().then(() => {
 
 **Example:**
 ```html
-<div x-data="{ size: null }"
-     x-resize="size = $event.detail">
-    <p x-show="size" x-text="'Size: ' + size.width + 'x' + size.height"></p>
+<div hx-data="{ size: null }"
+     hx-resize="size = $event.detail">
+    <p hx-show="size" hx-text="'Size: ' + size.width + 'x' + size.height"></p>
 </div>
 ```
 
 ---
 
-### `x-tick`
+### `hx-tick`
 
-**Example:** `<div x-tick.1000="counter++">...</div>`
+**Example:** `<div hx-tick.1000="counter++">...</div>`
 
-**Structure:** `<div x-tick.[delay].[options]="[expression]">...</div>`
+**Structure:** `<div hx-tick.[delay].[options]="[expression]">...</div>`
 
-`x-tick` executes expressions on the next tick or at specified intervals. It's useful for animations, polling, and timed updates.
+`hx-tick` executes expressions on the next tick or at specified intervals. It's useful for animations, polling, and timed updates.
 
 **Available options:**
 - `.delay.[number]` - Set delay in milliseconds (default: 1000)
@@ -309,43 +309,43 @@ InlineJSExtended().then(() => {
 
 **Example:**
 ```html
-<div x-data="{ count: 0, running: true }"
-     x-tick.500="count++"
-     x-show="running">
-    <p x-text="'Count: ' + count"></p>
-    <button x-on:click="$tick.toggle()">Toggle Timer</button>
+<div hx-data="{ count: 0, running: true }"
+     hx-tick.500="count++"
+     hx-show="running">
+    <p hx-text="'Count: ' + count"></p>
+    <button hx-on:click="$tick.toggle()">Toggle Timer</button>
 </div>
 ```
 
 ---
 
-### `x-attr`
+### `hx-attr`
 
-**Example:** `<div x-attr:data-id="userId">...</div>`
+**Example:** `<div hx-attr:data-id="userId">...</div>`
 
-**Structure:** `<div x-attr:[attribute]="[expression]">...</div>`
+**Structure:** `<div hx-attr:[attribute]="[expression]">...</div>`
 
-`x-attr` provides enhanced attribute binding with additional features beyond the core `x-bind` directive.
-
----
-
-### `x-mouse`
-
-**Example:** `<div x-mouse:move="handleMouseMove($event)">...</div>`
-
-**Structure:** `<div x-mouse:[event].[options]="[expression]">...</div>`
-
-`x-mouse` provides advanced mouse event handling with gesture support and enhanced event information.
+`hx-attr` provides enhanced attribute binding with additional features beyond the core `hx-bind` directive.
 
 ---
 
-### `x-keyboard`
+### `hx-mouse`
 
-**Example:** `<div x-keyboard:keydown.ctrl.s="save()">...</div>`
+**Example:** `<div hx-mouse:move="handleMouseMove($event)">...</div>`
 
-**Structure:** `<div x-keyboard:[event].[modifiers]="[expression]">...</div>`
+**Structure:** `<div hx-mouse:[event].[options]="[expression]">...</div>`
 
-`x-keyboard` provides enhanced keyboard event handling with support for complex key combinations and shortcuts.
+`hx-mouse` provides advanced mouse event handling with gesture support and enhanced event information.
+
+---
+
+### `hx-keyboard`
+
+**Example:** `<div hx-keyboard:keydown.ctrl.s="save()">...</div>`
+
+**Structure:** `<div hx-keyboard:[event].[modifiers]="[expression]">...</div>`
+
+`hx-keyboard` provides enhanced keyboard event handling with support for complex key combinations and shortcuts.
 
 ---
 
@@ -370,7 +370,7 @@ InlineJSExtended().then(() => {
 
 **Example:**
 ```html
-<div x-data="{
+<div hx-data="{
     data: null,
     loading: false,
     async fetchData() {
@@ -382,15 +382,15 @@ InlineJSExtended().then(() => {
         }
     }
 }">
-    <button x-on:click="fetchData()">Fetch Users</button>
-    <div x-show="loading">Loading...</div>
-    <div x-show="data" x-text="JSON.stringify(data)"></div>
+    <button hx-on:click="fetchData()">Fetch Users</button>
+    <div hx-show="loading">Loading...</div>
+    <div hx-show="data" hx-text="JSON.stringify(data)"></div>
 </div>
 ```
 
 **FormData helper:**
 ```html
-<div x-data="{
+<div hx-data="{
     submitForm() {
         const formData = $fetch.formData({
             name: 'John Doe',
@@ -399,7 +399,7 @@ InlineJSExtended().then(() => {
         return $fetch.get('/submit', { method: 'POST', body: formData });
     }
 }">
-    <button x-on:click="submitForm()">Submit</button>
+    <button hx-on:click="submitForm()">Submit</button>
 </div>
 ```
 
@@ -438,16 +438,16 @@ InlineJSExtended().then(() => {
 
 **Example:**
 ```html
-<div x-data="{
+<div hx-data="{
     price: 1234567.89,
     name: 'john doe',
     date: new Date(),
     items: ['apple', 'banana', 'cherry']
 }">
-    <p x-text="'Price: ' + $format.currency(price, 'USD')"></p>
-    <p x-text="'Name: ' + $format.titleCase(name)"></p>
-    <p x-text="'Date: ' + $format.date(date, 'Y-m-d')"></p>
-    <p x-text="'Items: ' + $format.join(items, ', ')"></p>
+    <p hx-text="'Price: ' + $format.currency(price, 'USD')"></p>
+    <p hx-text="'Name: ' + $format.titleCase(name)"></p>
+    <p hx-text="'Date: ' + $format.date(date, 'Y-m-d')"></p>
+    <p hx-text="'Items: ' + $format.join(items, ', ')"></p>
 </div>
 ```
 
@@ -469,7 +469,7 @@ InlineJSExtended().then(() => {
 
 **Example:**
 ```html
-<div x-data="{
+<div hx-data="{
     result: null,
     async loadData() {
         const promise = new Promise(resolve => {
@@ -487,14 +487,14 @@ InlineJSExtended().then(() => {
         }
     }
 }">
-    <button x-on:click="loadData()">Load Data</button>
-    <p x-text="result || 'No data'"></p>
+    <button hx-on:click="loadData()">Load Data</button>
+    <p hx-text="result || 'No data'"></p>
 </div>
 ```
 
 **Advanced example with fetch:**
 ```html
-<div x-data="{
+<div hx-data="{
     users: null,
     async fetchUsers() {
         const promise = fetch('/api/users').then(r => r.json());
@@ -502,9 +502,9 @@ InlineJSExtended().then(() => {
         this.users = await promise;
     }
 }">
-    <button x-on:click="fetchUsers()">Fetch Users</button>
-    <template x-for="user in users || []">
-        <div x-text="user.name" x-class:loading="user.loading"></div>
+    <button hx-on:click="fetchUsers()">Fetch Users</button>
+    <template hx-for="user in users || []">
+        <div hx-text="user.name" hx-class:loading="user.loading"></div>
     </template>
 </div>
 ```
@@ -524,7 +524,7 @@ InlineJSExtended().then(() => {
 
 **Upload example:**
 ```html
-<form x-data="{
+<form hx-data="{
     file: null,
     uploading: false,
     async uploadFile() {
@@ -542,16 +542,16 @@ InlineJSExtended().then(() => {
         }
     }
 }">
-    <input type="file" x-on:change="file = $event.target.files[0]">
-    <button x-on:click="uploadFile()" x-bind:disabled="!file || uploading">
-        <span x-text="uploading ? 'Uploading...' : 'Upload'"></span>
+    <input type="file" hx-on:change="file = $event.target.files[0]">
+    <button hx-on:click="uploadFile()" hx-bind:disabled="!file || uploading">
+        <span hx-text="uploading ? 'Uploading...' : 'Upload'"></span>
     </button>
 </form>
 ```
 
 **Download example:**
 ```html
-<div x-data="{
+<div hx-data="{
     async downloadReport() {
         try {
             const blob = await $server.download('/api/reports/monthly', {
@@ -571,7 +571,7 @@ InlineJSExtended().then(() => {
         }
     }
 }">
-    <button x-on:click="downloadReport()">Download Report</button>
+    <button hx-on:click="downloadReport()">Download Report</button>
 </div>
 ```
 
@@ -592,26 +592,26 @@ InlineJSExtended().then(() => {
 
 **Example:**
 ```html
-<div x-data="{ modalOpen: false }">
-    <button x-on:click="modalOpen = true; $overlay.show()">
+<div hx-data="{ modalOpen: false }">
+    <button hx-on:click="modalOpen = true; $overlay.show()">
         Open Modal
     </button>
     
-    <div x-show="modalOpen" 
-         x-overlay="modalOpen"
-         x-on:click.outside="modalOpen = false; $overlay.hide()"
+    <div hx-show="modalOpen" 
+         hx-overlay="modalOpen"
+         hx-on:click.outside="modalOpen = false; $overlay.hide()"
          style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
                 background: white; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
         <h2>Modal Title</h2>
         <p>Modal content goes here...</p>
-        <button x-on:click="modalOpen = false; $overlay.hide()">Close</button>
+        <button hx-on:click="modalOpen = false; $overlay.hide()">Close</button>
     </div>
 </div>
 ```
 
 **Advanced overlay management:**
 ```html
-<div x-data="{
+<div hx-data="{
     dropdownOpen: false,
     modalOpen: false,
     
@@ -637,19 +637,19 @@ InlineJSExtended().then(() => {
 }">
     <!-- Dropdown -->
     <div style="position: relative;">
-        <button x-on:click="openDropdown()">Open Dropdown</button>
-        <div x-show="dropdownOpen" 
-             x-overlay="dropdownOpen"
-             x-on:click.outside="closeDropdown()">
+        <button hx-on:click="openDropdown()">Open Dropdown</button>
+        <div hx-show="dropdownOpen" 
+             hx-overlay="dropdownOpen"
+             hx-on:click.outside="closeDropdown()">
             Dropdown content
-            <button x-on:click="openModal()">Open Modal</button>
+            <button hx-on:click="openModal()">Open Modal</button>
         </div>
     </div>
     
     <!-- Modal -->
-    <div x-show="modalOpen" x-overlay="modalOpen">
+    <div hx-show="modalOpen" hx-overlay="modalOpen">
         Modal content
-        <button x-on:click="closeModal()">Close Modal</button>
+        <button hx-on:click="closeModal()">Close Modal</button>
     </div>
 </div>
 ```

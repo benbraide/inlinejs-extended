@@ -3,7 +3,7 @@
 <head>
     <title>InlineJS Extended Test (Manual)</title>
     <style>
-        [x-cloak] { display: none; }
+        [hx-cloak] { display: none; }
         body { font-family: Arial, sans-serif; padding: 20px; }
         .test { border: 1px solid #ccc; margin: 10px 0; padding: 15px; }
         .note { background: #f0f0f0; padding: 10px; margin: 10px 0; }
@@ -24,27 +24,27 @@
     <!-- Test 1: Basic InlineJS -->
     <div class="test">
         <h2>Test 1: Basic InlineJS (requires base library)</h2>
-        <div x-data="{ message: 'Hello from InlineJS!', count: 0 }" x-cloak>
-            <p x-text="message"></p>
-            <p>Count: <span x-text="count"></span></p>
-            <button x-on:click="count++">Increment</button>
-            <button x-on:click="count = 0">Reset</button>
+        <div hx-data="{ message: 'Hello from InlineJS!', count: 0 }" hx-cloak>
+            <p hx-text="message"></p>
+            <p>Count: <span hx-text="count"></span></p>
+            <button hx-on:click="count++">Increment</button>
+            <button hx-on:click="count = 0">Reset</button>
         </div>
     </div>
 
     <!-- Test 2: Extended Features -->
     <div class="test">
         <h2>Test 2: Extended Features (requires both libraries)</h2>
-        <div x-data="{ 
+        <div hx-data="{ 
             number: 1234567.89,
             text: 'hello world',
             fetchAvailable: false
-        }" x-init="fetchAvailable = typeof $fetch !== 'undefined'" x-cloak>
+        }" hx-init="fetchAvailable = typeof $fetch !== 'undefined'" hx-cloak>
             <p><strong>$format magic:</strong></p>
-            <p>Number with comma: <span x-text="$format.comma(number)"></span></p>
-            <p>Uppercase text: <span x-text="$format.upperCase(text)"></span></p>
+            <p>Number with comma: <span hx-text="$format.comma(number)"></span></p>
+            <p>Uppercase text: <span hx-text="$format.upperCase(text)"></span></p>
             
-            <p><strong>$fetch magic available:</strong> <span x-text="fetchAvailable ? 'Yes' : 'No'"></span></p>
+            <p><strong>$fetch magic available:</strong> <span hx-text="fetchAvailable ? 'Yes' : 'No'"></span></p>
         </div>
     </div>
 

@@ -94,15 +94,15 @@ The built `inlinejs-extended.js` file extends InlineJS but does not include the 
 ## Extended Functionality
 
 ### Available Directives
-- `x-form` - Enhanced form handling with server submission and middleware
-- `x-intersection` - Intersection observer for visibility detection
-- `x-overlay` - Overlay management for modals and dropdowns
-- `x-state` - State management and persistence
-- `x-resize` - Element resize observation
-- `x-tick` - Next tick execution
-- `x-attr` - Enhanced attribute binding
-- `x-mouse` - Mouse event handling
-- `x-keyboard` - Keyboard event handling
+- `hx-form` - Enhanced form handling with server submission and middleware
+- `hx-intersection` - Intersection observer for visibility detection
+- `hx-overlay` - Overlay management for modals and dropdowns
+- `hx-state` - State management and persistence
+- `hx-resize` - Element resize observation
+- `hx-tick` - Next tick execution
+- `hx-attr` - Enhanced attribute binding
+- `hx-mouse` - Mouse event handling
+- `hx-keyboard` - Keyboard event handling
 
 ### Available Magic Properties
 - `$fetch` - HTTP request utilities with path handlers and mocking
@@ -128,13 +128,13 @@ The built `inlinejs-extended.js` file extends InlineJS but does not include the 
    <!DOCTYPE html>
    <html>
    <head>
-       <style>[x-cloak] { display: none; }</style>
+       <style>[hx-cloak] { display: none; }</style>
    </head>
    <body>
-       <div x-data="{ message: 'Test successful!', count: 0 }" x-cloak>
-           <p x-text="message"></p>
-           <p>Count: <span x-text="count"></span></p>
-           <button x-on:click="count++">Test Click</button>
+       <div hx-data="{ message: 'Test successful!', count: 0 }" hx-cloak>
+           <p hx-text="message"></p>
+           <p>Count: <span hx-text="count"></span></p>
+           <button hx-on:click="count++">Test Click</button>
        </div>
        
        <!-- Include base InlineJS first -->
@@ -146,42 +146,42 @@ The built `inlinejs-extended.js` file extends InlineJS but does not include the 
    ```
 
 3. **Test core functionality**:
-   - Basic data binding (x-data, x-text, x-on:click)
-   - Extended directives (x-form, x-intersection if modified)
+   - Basic data binding (hx-data, hx-text, hx-on:click)
+   - Extended directives (hx-form, hx-intersection if modified)
    - Magic properties ($fetch, $format if modified)
 
 4. **Browser testing**: Open the test HTML in a browser and verify:
    - No JavaScript errors in console
    - Data binding works (text updates, click handlers respond)
    - Extended features work as expected
-   - Elements with x-cloak become visible after initialization
+   - Elements with hx-cloak become visible after initialization
 
 ## Validation Scenarios for Extended Features
 
 ### Testing Form Directive
 ```html
-<div x-data="{ name: '', submitted: false }">
-    <form x-form="{ success: submitted = true }">
-        <input x-model="name" name="name" required>
+<div hx-data="{ name: '', submitted: false }">
+    <form hx-form="{ success: submitted = true }">
+        <input hx-model="name" name="name" required>
         <button type="submit">Submit</button>
     </form>
-    <p x-show="submitted">Form submitted!</p>
+    <p hx-show="submitted">Form submitted!</p>
 </div>
 ```
 
 ### Testing Format Magic
 ```html
-<div x-data="{ number: 1234567.89, text: 'hello world' }">
-    <p x-text="$format.comma(number)"></p>
-    <p x-text="$format.upperCase(text)"></p>
+<div hx-data="{ number: 1234567.89, text: 'hello world' }">
+    <p hx-text="$format.comma(number)"></p>
+    <p hx-text="$format.upperCase(text)"></p>
 </div>
 ```
 
 ### Testing Intersection Directive
 ```html
-<div x-data="{ visible: false }">
-    <p x-text="visible ? 'Visible' : 'Not visible'"></p>
-    <div x-intersection:visible="visible = $event.detail.visible">
+<div hx-data="{ visible: false }">
+    <p hx-text="visible ? 'Visible' : 'Not visible'"></p>
+    <div hx-intersection:visible="visible = $event.detail.visible">
         Watch me scroll into view
     </div>
 </div>
